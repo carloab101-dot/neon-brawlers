@@ -136,6 +136,25 @@ body.istouch[data-mode=adv] #joy{display:block}
 body:not([data-mode=adv]) #quest,body:not([data-mode=adv]) #mmap,body:not([data-mode=adv]) #qdist{display:none}
 .big.warnTop{top:21%!important;font-size:46px!important}.bsub.warnTop{top:calc(21% + 34px)!important}
 @media (max-width:600px){#quest{top:208px;left:8px;transform:none;max-width:calc(100vw - 132px);font-size:12px;padding:5px 9px;text-align:left}#quest b,#quest i{font-size:10.5px}#mmap{right:8px;top:208px}#joy{bottom:200px;left:14px}.big.warnTop{top:30%!important;font-size:30px!important}.bsub.warnTop{top:calc(30% + 24px)!important}}
+#ov .card.wide.selw{max-width:1060px}
+#ov .slot{display:grid;grid-template-columns:1fr 470px;gap:12px;align-items:start}#ov .slot .sl{grid-column:1/-1;margin:0}
+.ssh{position:relative;text-align:left;padding:10px 12px 9px;background:linear-gradient(160deg,rgba(18,10,40,.92),rgba(4,8,20,.95));border:1px solid rgba(41,230,255,.45);box-shadow:0 0 18px rgba(41,230,255,.18),inset 0 0 24px rgba(255,46,160,.07);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);font:600 11px/1.3 "Bahnschrift","DIN Alternate","Avenir Next Condensed","Arial Narrow","Helvetica Neue",Arial;animation:sshIn .32s cubic-bezier(.2,1.2,.4,1)}
+.ssh.p0{border-color:rgba(255,138,30,.6);box-shadow:0 0 18px rgba(255,138,30,.2),inset 0 0 24px rgba(255,46,160,.07)}
+.ssh::before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.07) 45%,transparent 60%);background-size:250% 100%;animation:sshGl 2.6s ease-in-out infinite;pointer-events:none}
+@keyframes sshIn{from{opacity:0;transform:translateY(6px) skewX(-4deg)}}@keyframes sshGl{0%{background-position:120% 0}60%,100%{background-position:-60% 0}}
+.ssh-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,.12);padding-bottom:4px;margin-bottom:6px}
+.ssh-h b{font:italic 900 17px/1 "Arial Black",Arial;letter-spacing:2px;color:#fff;text-shadow:0 0 10px #ff2ea0,0 0 22px #29e6ff}.ssh-h em{font-style:normal;font-size:10px;letter-spacing:1px;color:#9fe9ff;opacity:.85}
+.ssh-base{display:flex;flex-wrap:wrap;gap:4px 10px;margin-bottom:7px;color:#e9fbff}.ssh-base span{white-space:nowrap}.ssh-base i{font-style:normal;font-weight:900;font-size:9px;letter-spacing:2px;color:#ffc23a;margin-right:4px}.ssh-base small{opacity:.6}
+.ssh-bars .sb{display:grid;grid-template-columns:62px 1fr 26px auto;align-items:center;gap:0 6px;margin:1px 0;line-height:1.15}
+.ssh-bars label{font:italic 900 10px Arial;letter-spacing:2px;color:#cfefff}.ssh-bars span{font:900 12px Arial;color:#fff;text-align:right}
+.ssh-bars small{font-size:9px;color:#8fb6d6;letter-spacing:.2px;white-space:nowrap;min-width:118px}
+.ssh-bars .tr{height:8px;background:rgba(255,255,255,.07);clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%);overflow:hidden}
+.ssh-bars .tr i{display:block;height:100%;width:var(--w);background:linear-gradient(90deg,#ff2ea0,#ffb030 55%,#29e6ff);box-shadow:0 0 10px #ff2ea0;animation:sshBar .7s cubic-bezier(.2,1,.3,1) var(--d) both;transform-origin:left}
+@keyframes sshBar{from{transform:scaleX(0)}}
+.ssh-mv{width:100%;border-collapse:collapse;margin-top:7px;font-size:10.5px;color:#e9fbff}.ssh-mv th{font:900 8.5px Arial;letter-spacing:1.5px;color:#7fdfff;text-align:left;padding:2px 3px;border-bottom:1px solid rgba(41,230,255,.3)}
+.ssh-mv td{padding:3px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}.ssh-mv td small{opacity:.65}.ssh-mv td:nth-child(n+4){white-space:nowrap;font-weight:800}
+.ssh-mv kbd{display:inline-block;min-width:16px;text-align:center;font:900 10px Arial;padding:1px 3px;color:#120818;background:#29e6ff;box-shadow:0 0 8px #29e6ff}.ssh.p0 .ssh-mv kbd{background:#ff8a1e;box-shadow:0 0 8px #ff8a1e}
+@media (max-width:760px){#ov .slot{grid-template-columns:1fr;gap:6px}.ssh{padding:8px 9px}.ssh-h b{font-size:15px}.ssh-mv{font-size:9.5px}.ssh-mv td:nth-child(3){font-size:8.5px;opacity:.85}.ssh-bars .sb{grid-template-columns:56px 1fr 24px;row-gap:0}.ssh-bars small{grid-column:2/4;min-width:0;margin:-1px 0 1px}}
 </style>
 </head>
 <body data-p="0">
@@ -1465,9 +1484,10 @@ function glide(f,target,dt){if(f.mi!==4||f.walk)return;const q=Math.sin(G.t*2.2+
 function poseAt(keys,t,guard){let i=0;while(i<keys.length-1&&keys[i+1][0]<t)i++;const a=keys[i],b=keys[Math.min(i+1,keys.length-1)];const span=b[0]-a[0];const f=span>0?smooth(clamp((t-a[0])/span,0,1)):1;
  const out={};for(const k in guard){const ga=a[1][k]!==undefined?a[1][k]:guard[k],gb=b[1][k]!==undefined?b[1][k]:guard[k];if(Array.isArray(guard[k]))out[k]=[lerp(ga[0],gb[0],f),lerp(ga[1],gb[1],f),lerp(ga[2],gb[2],f)];else out[k]=lerp(ga,gb,f);}return out;}
 const clonePose=p=>{const o={};for(const k in p)o[k]=Array.isArray(p[k])?p[k].slice():p[k];return o;};
+const FSTAT={hp:100,walk:1.7,advWalk:3.3,guardTake:.2};/* shared fighter base stats (used by gameplay and the stat sheets) */
 class Fighter{constructor(side,mechIdx){this.side=side;this.mi=mechIdx;const M=BUILDERS[mechIdx]();this.M=M;this.B=M.B;this.spec=M.spec;this.K=M.K;this.info=MECH_INFO[mechIdx];
   this.guard=GUARD[mechIdx];this.moves=MOVES[mechIdx];this.root=M.B.root;scene.add(this.root);this.reset();}
- reset(){this.hp=100;this.x=this.side===0?-1.6:1.6;this.z=0;this.zyaw=0;this.vz=0;this.ang=this.side?-PI/2:PI/2;this.vx=0;this.y=0;this.vy=0;this.act=null;this.cd=[0,0,0];this.block=false;this.ko=false;this.walk=0;this.wph=0;this.pose=clonePose(this.guard);this.snap=null;this.flash=0;this.state='idle';this.face=this.side===0?1:-1;this.aiT=0;this.blockT=0;if(this.root)this.root.visible=true;this.advFace=this.side?-1:1;}
+ reset(){this.hp=FSTAT.hp;this.x=this.side===0?-1.6:1.6;this.z=0;this.zyaw=0;this.vz=0;this.ang=this.side?-PI/2:PI/2;this.vx=0;this.y=0;this.vy=0;this.act=null;this.cd=[0,0,0];this.block=false;this.ko=false;this.walk=0;this.wph=0;this.pose=clonePose(this.guard);this.snap=null;this.flash=0;this.state='idle';this.face=this.side===0?1:-1;this.aiT=0;this.blockT=0;if(this.root)this.root.visible=true;this.advFace=this.side?-1:1;}
  get dir(){return this.face;}
  start(def,opt){if(ADV.on&&(!opt||!opt.quiet))advAutoFace(this,def);this.act={def,t:0,hitDone:{},fxs:{}};this.snap=clonePose(this.pose);if(!opt||!opt.quiet)G.moveLog.push({side:this.side,mech:this.info.short,name:def.name,t:+G.t.toFixed(2)});}
  chest(v){return this.B.chest.getWorldPosition(v||new V3()).add(new V3(0,.25,0));}}
@@ -1497,7 +1517,7 @@ function fighterUpdate(f,o,dt){const g=f.guard;
 function applyPose(f){const B=f.B,p=f.pose;for(const b of BONES){const r=p[b];if(r)B[b].rotation.set(r[0],r[1],r[2]);}
  B.hips.position.y=f.spec.hipY+(p.hy||0);if(ADV.on){B.root.position.set(f.x+FWX(f)*(p.lz||0),f.y,(f.z||0)+FWZ(f)*(p.lz||0));B.root.rotation.set(0,(f.ang||0)+(p.spin||0),0);}else{B.root.position.set(f.x+f.dir*(p.lz||0),f.y,f.z||0);B.root.rotation.set(0,(f.dir>0?PI/2+(p.spin||0):-PI/2-(p.spin||0))-f.dir*(f.zyaw||0),0);}}
 function resolveHit(f,o,h,d){if(ADV.on){advHit(f,h);return;}const dist=Math.abs(o.x-f.x);if(o.ko||dist>h.range)return;
- const blocking=o.block&&!o.act;const dmg=blocking?Math.ceil(h.dmg*.2):h.dmg;o.hp=Math.max(0,o.hp-dmg);
+ const blocking=o.block&&!o.act;const dmg=blocking?Math.ceil(h.dmg*FSTAT.guardTake):h.dmg;o.hp=Math.max(0,o.hp-dmg);
  const p=o.chest();p.x-=o.dir*.35;const col=h.col||(f.mi===0?0xffa040:0xffc060);
  if(blocking){burst(p,18,0x8fd8ff,3,{life:.3,s0:.05});o.vx=f.dir*h.kb*1.2;G.shake=Math.max(G.shake,.08);sfx('block');}
  else{burst(p,26+dmg*2,[col,0xffffff,0xffe0a0],3+dmg*.3,{life:.45,s0:.07,up:.3});burst(p,6,0xffffff,1,{life:.12,s0:.5,s1:.2,grav:0,k:4});
@@ -1708,14 +1728,32 @@ function showMenu(){clearClash();pause(true);G.ui='menu';G.ov.innerHTML='<div cl
  '<button class="mb big2" data-mode="vs2">👥 2 PLAYERS<small>(same keyboard)</small></button><button class="mb" data-mode="vs1">VERSUS · 1P vs CPU</button><button class="mb" data-mode="adv">ADVENTURE · CO-OP (1–2P)</button>'+
  '<button class="mb alt" id="mKeys">⌨ CONTROLS / KEYBINDS</button>'+(IS_TOUCH?'<p class="note">On a phone the touch pad drives Player 1. 2P modes need a keyboard.</p>':'<p class="note">P1: A D move · W jab · S guard · Z X C specials · Space jump &nbsp;|&nbsp; P2: ← → · ↑ jab · ↓ guard · I O P · Enter jump · Esc restarts</p>')+'</div>';
  G.ov.style.display='flex';G.ov.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>showSelect(b.dataset.mode));G.ov.querySelector('#mKeys').onclick=()=>showKeys(true,'menu');}
+/* ===== Stage D2: fighter stat sheets on character select (all numbers read from the live game data) ===== */
+function statData(i){const ms=MOVES[i],jab=i===4?JAB_LL:JAB,jh=jab.hits[0];
+ const mv=ms.map((m,k)=>{const dmg=m.hits.reduce((a,h)=>a+h.dmg,0),rng=Math.max(...m.hits.map(h=>h.range)),st=m.fireT!=null?m.fireT:m.hits[0].t;
+  return {k,name:m.name,tier:m.tier,type:m.type,dmg,hits:m.hits.length,per:m.hits.map(h=>h.dmg),range:rng,cd:m.cd,startup:m.hits[0].t,dur:m.dur};});
+ const tot=mv.reduce((a,m)=>a+m.dmg,0),avgSt=(jh.t+mv.reduce((a,m)=>a+m.startup,0))/4,avgR=mv.reduce((a,m)=>a+m.range,0)/3,dpc=mv.reduce((a,m)=>a+m.dmg/m.cd,0);
+ const c01=v=>Math.max(0,Math.min(1,v));
+ const bars=[['POWER',c01(tot/60),tot+' total special dmg'],['SPEED',c01((.75-avgSt)/.5),'avg startup '+avgSt.toFixed(2)+'s'],
+  ['DEFENSE',c01(FSTAT.hp/150*.5+(1-FSTAT.guardTake)*.5),FSTAT.hp+' HP · guard blocks '+Math.round((1-FSTAT.guardTake)*100)+'%'],
+  ['RANGE',c01(avgR/5),'avg reach '+avgR.toFixed(2)+'m'],['SPECIAL',c01(dpc/12),dpc.toFixed(1)+' dmg per cooldown-sec']];
+ return {name:MECH_INFO[i].name,tag:MECH_INFO[i].tag,hp:FSTAT.hp,walk:FSTAT.walk,advWalk:FSTAT.advWalk,guard:FSTAT.guardTake,jab:{name:jab.name,dmg:jh.dmg,dur:jab.dur,startup:jh.t,range:jh.range},moves:mv,bars};}
+function statSheet(i,p){const d=statData(i),R=['','I','II','III'],f2=v=>(+v).toFixed(2).replace(/0$/,'');
+ return '<div class="ssh p'+p+'" data-i="'+i+'"><div class="ssh-h"><b>'+d.name+'</b><em>'+d.tag+'</em></div>'+
+  '<div class="ssh-base"><span><i>HP</i>'+d.hp+'</span><span><i>WALK</i>'+d.walk+' m/s<small> · adv '+d.advWalk+'</small></span><span><i>GUARD</i>takes '+Math.round(d.guard*100)+'%</span><span><i>JAB</i>'+d.jab.name+' · '+d.jab.dmg+' dmg · '+f2(d.jab.dur)+'s · '+f2(d.jab.range)+'m</span></div>'+
+  '<div class="ssh-bars">'+d.bars.map(([n,v,t],k)=>'<div class="sb"><label>'+n+'</label><div class="tr"><i style="--w:'+(v*100).toFixed(1)+'%;--d:'+(k*70)+'ms"></i></div><span>'+Math.round(v*100)+'</span><small>'+t+'</small></div>').join('')+'</div>'+
+  '<table class="ssh-mv"><tr><th></th><th>MOVE</th><th>TIER · TYPE</th><th>DMG</th><th>RANGE</th><th>CD</th></tr>'+d.moves.map(m=>'<tr><td><kbd>'+keyName(BINDS[p]['s'+m.k])+'</kbd></td><td>'+m.name+'</td><td>'+R[m.tier]+' · '+m.type+'</td><td>'+m.dmg+(m.hits>1?'<small> ('+m.hits+'×'+(m.per.every(x=>x===m.per[0])?m.per[0]:m.per.join('+'))+')</small>':'')+'</td><td>'+f2(m.range)+'m</td><td>'+m.cd+'s</td></tr>').join('')+'</table></div>';}
+function bindSheets(){G.ov.querySelectorAll('.slot').forEach(sl=>{const p=+sl.dataset.p,box=sl.querySelector('.sshw');if(!box)return;const show=i=>{if(box.firstChild&&+box.firstChild.dataset.i===i)return;box.innerHTML=statSheet(i,p);};
+ sl.querySelectorAll('.pc').forEach(b=>{b.addEventListener('mouseenter',()=>show(+b.dataset.i));b.addEventListener('focus',()=>show(+b.dataset.i));});sl.querySelector('.cards').addEventListener('mouseleave',()=>show(G.sel[p]));});}
+
 function showSelect(mode){clearClash();G.mode=mode;G.ui='select';const two=mode!=='vs1'&&!(mode==='adv'&&!G.advP2);
- const slot=(p,lab)=>'<div class="slot s'+p+'"><div class="sl">'+lab+'</div><div class="cards">'+[0,1,2,3,4].map(i=>'<button class="pc'+(G.sel[p]===i?' on':'')+'" data-p="'+p+'" data-i="'+i+'"><img alt="'+MECH_INFO[i].name+'" src="'+G.ports[i]+'"><span>'+MECH_INFO[i].tag+'</span></button>').join('')+'</div></div>';
- G.ov.innerHTML='<div class="card wide"><h1>'+({vs1:'VERSUS · 1P vs CPU',vs2:'VERSUS · 2P LOCAL',adv:'ADVENTURE · CO-OP'}[mode])+'</h1><p class="sub">Pick your fighter (mirror picks allowed). P1: A/D + W · P2: ←/→ + ↑ · Enter = start</p>'+
+ const slot=(p,lab)=>'<div class="slot s'+p+'" data-p="'+p+'"><div class="sl">'+lab+'</div><div class="cards">'+[0,1,2,3,4].map(i=>'<button class="pc'+(G.sel[p]===i?' on':'')+'" data-p="'+p+'" data-i="'+i+'"><img alt="'+MECH_INFO[i].name+'" src="'+G.ports[i]+'"><span>'+MECH_INFO[i].tag+'</span></button>').join('')+'</div><div class="sshw">'+statSheet(G.sel[p],p)+'</div></div>';
+ G.ov.innerHTML='<div class="card wide selw"><h1>'+({vs1:'VERSUS · 1P vs CPU',vs2:'VERSUS · 2P LOCAL',adv:'ADVENTURE · CO-OP'}[mode])+'</h1><p class="sub">Pick your fighter (mirror picks allowed). P1: A/D + W · P2: ←/→ + ↑ · Enter = start</p>'+
  slot(0,'PLAYER 1')+(mode==='adv'?'<label class="tg2"><input type="checkbox" id="p2j" '+(G.advP2?'checked':'')+'> Player 2 joins</label>':'')+((mode!=='adv'||G.advP2)?slot(1,mode==='vs1'?'CPU':'PLAYER 2'):'')+
  '<div class="row"><button class="mb" id="go">START ▶</button><button class="mb alt" id="back">◀ BACK</button></div></div>';
  G.ov.querySelectorAll('.pc').forEach(b=>b.onclick=()=>{G.sel[+b.dataset.p]=+b.dataset.i;showSelect(mode);});
  const p2=G.ov.querySelector('#p2j');if(p2)p2.onchange=()=>{G.advP2=p2.checked;showSelect(mode);};
- G.ov.querySelector('#go').onclick=startMode;G.ov.querySelector('#back').onclick=showMenu;}
+ G.ov.querySelector('#go').onclick=startMode;G.ov.querySelector('#back').onclick=showMenu;bindSheets();}
 function startMode(){clearClash();G.ov.style.display='none';G.ui=null;clearBubbles();const a=G.sel[0],b=(G.mode==='adv'&&!G.advP2)?G.sel[0]:G.sel[1];
  if(!F.length||F[0].mi!==a||F[1].mi!==b)setFighters(a,b);PLAYER=0;
  document.body.dataset.mode=G.mode;if(G.mode==='adv')advStart(1);else{advExit();restartMatch();}HUD.labels();pause(false);G.snapCam=true;}
@@ -1751,7 +1789,7 @@ function onKeyUp(e){const code=e.code||e.key;for(const [p,a] of bindLookup(code)
 function ctrl(f,I,dt){if(G.phase!=='fight'||f.ko){f.walk=0;f.block=false;I.queue.length=0;return;}
  const pad=ADV.on?padAt(f):null;
  if(pad){if(I.block&&!I.padHold){I.padHold=1;usePad(f,pad);}f.block=false;}else f.block=!!I.block&&!f.act&&!I.padHold;
- if(ADV.on)advMove(f,I,dt);else{const mv=(I.r?1:0)-(I.l?1:0);f.walk=f.act||f.block?0:mv*f.dir;if(!f.act&&!f.block)f.x+=mv*1.7*dt;f.zyaw=0;}
+ if(ADV.on)advMove(f,I,dt);else{const mv=(I.r?1:0)-(I.l?1:0);f.walk=f.act||f.block?0:mv*f.dir;if(!f.act&&!f.block)f.x+=mv*FSTAT.walk*dt;f.zyaw=0;}
  if(I.jump){if(f.y<=0&&!f.act)f.vy=6.2;I.jump=0;}
  for(const q of I.queue)f.buf={i:q,t:.3};I.queue.length=0;if(f.buf){if(doMove(f,f.buf.i))f.buf=null;else{f.buf.t-=dt;if(f.buf.t<=0)f.buf=null;}}}
 /* ================= ADVENTURE ================= */
@@ -2139,7 +2177,7 @@ function titanStep(e,P,dt){const [t,dist]=nearestP(e,P);
 function advMove(f,I,dt){let ix=(I.r?1:0)-(I.l?1:0),iz=(I.out?1:0)-(I.in?1:0);if(I.jx||I.jy){ix+=I.jx;iz+=I.jy;}let m=Math.hypot(ix,iz);if(m>1){ix/=m;iz/=m;m=1;}
  const th=(ADV.yaw||0)+(CAM.dth||0);const wx=ix*Math.cos(th)+iz*Math.sin(th),wz=-ix*Math.sin(th)+iz*Math.cos(th);
  f.walk=f.act||f.block?0:m;f.mvx=wx;f.mvz=wz;
- if(m>.05&&!f.act&&!f.block){const sp=3.3;f.x+=wx*sp*dt;f.z+=wz*sp*dt;const a=Math.atan2(wx,wz);f.ang=(f.ang||0)+clamp(angDiff(a,f.ang||0),-13*dt,13*dt);}}
+ if(m>.05&&!f.act&&!f.block){const sp=FSTAT.advWalk;f.x+=wx*sp*dt;f.z+=wz*sp*dt;const a=Math.atan2(wx,wz);f.ang=(f.ang||0)+clamp(angDiff(a,f.ang||0),-13*dt,13*dt);}}
 /* ---------- main step ---------- */
 function advStep(dt){const P=advActive();const W=ADV.world,q=ADV.quest,NL=STAGES.length;
  if(G.phase==='intro'){if(G.phaseT>1.2){G.phase='fight';}}
