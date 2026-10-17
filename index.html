@@ -3630,16 +3630,26 @@ G.autoAim=(()=>{try{return localStorage.getItem('nb_autoaim_v1')!=='0';}catch(e)
 const AIM_COL=[0xff8a1e,0x29e6ff];
 function aimTargets(){const T_=[];for(const e of ADV.en)if(!e.dead&&!(e.hp<=0))T_.push(e);if(ADV.decoys)for(const d of ADV.decoys)if(!d.dead)T_.push(d);return T_;}
 function aimRange(i,f){if(i<0)return 3;const m=f.moves[i];const k=moveKind(m);return (k==='beam'||m.hits.some(h=>h.range>=3.5)||m.fireT!=null)?8:3.5;}
-function aimPick(f,range){const fx=Math.sin(f.ang||0),fz=Math.cos(f.ang||0);let best=null,bs=1e9;
- for(const e of aimTargets()){const dx=e.x-f.x,dz=e.z-f.z,d=Math.hypot(dx,dz);if(d>range+(e.r||0)*.5)continue;const front=d>.01?(dx*fx+dz*fz)/d:1;const s=d-front*.35;if(s<bs){bs=s;best=e;}}return best;}
+const AIM_CONE=Math.cos(50*Math.PI/180),AIM_STICK=1.5;
+/* aim direction: movement/stick while moving, else facing */
+function aimDir(f){if(f.walk>.05&&(f.mvx||f.mvz)){const l=Math.hypot(f.mvx,f.mvz)||1;return [f.mvx/l,f.mvz/l];}return [Math.sin(f.ang||0),Math.cos(f.ang||0)];}
+function aimEval(f,e,dir,range){const dx=e.x-f.x,dz=e.z-f.z,d=Math.hypot(dx,dz);if(d>range+(e.r||0)*.5)return null;const c=d>.01?(dx*dir[0]+dz*dir[1])/d:1;const cone=c>=AIM_CONE;
+ /* tier 1 (inside 100deg cone): nearest, weighted toward the cone centre; tier 2 only if the cone is empty */
+ return {d,c,cone,s:cone?d*(1+.35*(1-c)/(1-AIM_CONE)):1e4+d-.35*c};}
+function aimValid(e){return e&&!e.dead&&!(e.hp<=0)&&aimTargets().includes(e);}
+function aimPick(f,range,commit){const dir=aimDir(f);let best=null,bv=null;
+ for(const e of aimTargets()){const v=aimEval(f,e,dir,range);if(v&&(!bv||v.s<bv.s)){bv=v;best=e;}}
+ /* sticky: keep the current target while valid and inside the cone, unless the new pick is >1.5 closer */
+ const L=f.aimLock;if(best&&L&&L!==best&&aimValid(L)){const lv=aimEval(f,L,dir,range);if(lv&&lv.cone&&!(bv.cone&&bv.d<lv.d-AIM_STICK)){best=L;bv=lv;}}
+ if(commit)f.aimLock=best;return best;}
 function advAim(f,i){if(!ADV.on||!G.autoAim||f.ko)return null;const e=aimPick(f,aimRange(i,f));
  if(e){f.ang=Math.atan2(e.x-f.x,e.z-f.z);f.aimT=e;G.aimSnaps=(G.aimSnaps||0)+1;}
  else if(f.walk>.05&&(f.mvx||f.mvz))f.ang=Math.atan2(f.mvx,f.mvz);
  applyPose(f);return e;}
 function aimStep(dt,P){if(!ADV.aimR)ADV.aimR=[0,1].map(s=>{const m=new T.Mesh(new T.RingGeometry(.5,.62,40),new T.MeshBasicMaterial({color:new T.Color(AIM_COL[s]).multiplyScalar(2.2),transparent:true,opacity:.75,blending:T.AdditiveBlending,depthWrite:false,toneMapped:false,side:T.DoubleSide}));m.rotation.x=-PI/2;m.renderOrder=3;m.visible=false;scene.add(m);return m;});
- for(let s=0;s<2;s++){const m=ADV.aimR[s],f=F[s];const on=G.autoAim&&ADV.on&&P.includes(f)&&!f.ko;const e=on?aimPick(f,8):null;f.aimCur=e;
+ for(let s=0;s<2;s++){const m=ADV.aimR[s],f=F[s];const on=G.autoAim&&ADV.on&&P.includes(f)&&!f.ko;const e=on?aimPick(f,8,true):null;f.aimCur=e;
   if(e){m.visible=true;const r=Math.max(.7,(e.r||.4)*1.4);m.position.set(e.x,.05,e.z);m.scale.setScalar(r*(1+Math.sin((G.ft||0)*6)*.05));m.rotation.z+=dt*1.5;if(m.userData.e!==e){m.userData.e=e;G.aimSwitches=(G.aimSwitches||0)+1;}}else{m.visible=false;m.userData.e=null;}}}
-function aimHide(){if(ADV.aimR)ADV.aimR.forEach(m=>m.visible=false);}
+function aimHide(){if(ADV.aimR)ADV.aimR.forEach(m=>m.visible=false);for(const f of F)if(f)f.aimLock=null;}
 
 /* ---------- boot ---------- */
 function boot(){scene.environment=buildEnv();const L=buildLights();const W=buildArena();G.W=W;setupPost();setupFX();
@@ -3672,7 +3682,7 @@ function boot(){scene.environment=buildEnv();const L=buildLights();const W=build
  MAT_MAKERS=[()=>mechMaterial(det1,atlas1,{ccr:.05,ns:.3,env:1.0}),()=>mechMaterial(det2,atlas2,{ccr:.05,ns:.3,env:1.0})];{const det3=makeDetailMaps(256,{panels:-1,scratches:-1,strength:.35,dents:0});MAT_MAKERS.rx=ds=>{const m=mechMaterial(det3,atlas1,{ccr:.14,ns:.12,env:.8});if(ds)m.side=T.DoubleSide;return m;};}INPUT=IN[0];
  F=[new Fighter(0,0),new Fighter(1,1)];F[0].K.finalize(matFor(0));F[1].K.finalize(matFor(1));
  for(const f of F)applyPose(f);
- buildHUD();HUD.labels();bindInput();G.baseFog=scene.fog;buildMenus();showMenu();G.ov.style.display='flex';showSelect('vs2');HUD.boss(null);onResize();resetRound();G.snapCam=true;
+ buildHUD();HUD.labels();bindInput();G.baseFog=scene.fog;buildMenus();showMenu();G.ov.style.display='flex';showSelect('vs2');G.ov.style.display='flex';showSelect('vs2');HUD.boss(null);onResize();resetRound();G.snapCam=true;
  G.L=L;let last=performance.now(),frames=0,prT=0,holoT=0,fpsT0=performance.now();
  function holo(){const c=W.holoCanvas,x=c.getContext('2d');x.clearRect(0,0,1024,256);x.fillStyle='rgba(20,200,255,.08)';x.fillRect(0,0,1024,256);x.strokeStyle='rgba(41,230,255,.9)';x.lineWidth=3;x.strokeRect(6,6,1012,244);
   x.font='900 40px "Arial Black",Arial';x.textBaseline='middle';x.fillStyle='#ffb050';x.textAlign='left';x.fillText(F[0].info.name,30,60);x.fillStyle='#8ff4ff';x.textAlign='right';x.fillText(F[1].info.name,994,60);
