@@ -1013,9 +1013,9 @@ function buildMech5(){SEED=505;
  A(loft([[-.14,.27,.2,2.6],[.1,.25,.18,2.6],[.36,.27,.19,2.6]],28),B.spine,{m:'velvet',cat:'robe waist'});A(loft([[-.08,.275,.205,2.6],[.0,.28,.21,2.6]],28),B.spine,{m:'plum',cat:'sash'});for(let k=0;k<20;k++){const a=k/20*TAU;A(sphere(6,4),B.spine,{p:[Math.sin(a)*.283,-.04,Math.cos(a)*.212],s:.007,m:'gold',cat:'embroidery',small:true});}
  for(let i=0;i<9;i++)for(let j=0;j<9;j+=2){const a=(i/9)*2.2+.6,R=.27+j*.022+.013,y=.18-j*.12-.06;for(const s of [1,-1])A(cached('oct',()=>new T.OctahedronGeometry(1,0)),B.hips,{p:[s*Math.sin(a)*R,y,Math.cos(a)*R],s:[.008,.008,.004],r:[0,s*a,0],m:'gold',cat:'embroidery',small:true});}
  /* gold chains on chest: 3 hanging loops + medallion */
- for(let c=0;c<3;c++){const d=.12+c*.07;chain(B.chest,new T.CubicBezierCurve3(new V3(-.14-c*.02,.46,.13),new V3(-.12,.46-d,.26),new V3(.12,.46-d,.26),new V3(.14+c*.02,.46,.13)),26+c*4,.014);}
- A(cyl(.055,.055,.014,20),B.chest,{p:[0,.2,.26],r:[PI/2,0,0],m:'gold',cat:'medallion'});A(torus(.055,.008,6,20),B.chest,{p:[0,.2,.267],m:'gold2',cat:'medallion'});
- A(cone(.03,.05,4),B.chest,{p:[0,.2,.272],r:[PI/2,0,0],s:[1,1,.4],m:'gem',cat:'medallion'});for(let k=0;k<8;k++){const a=k/8*TAU;A(sphere(6,4),B.chest,{p:[Math.cos(a)*.042,.2+Math.sin(a)*.042,.27],s:.006,m:'ruby',cat:'medallion',small:true});}
+ for(let c=0;c<3;c++){const d=.12+c*.07;chain(B.chest,new T.CubicBezierCurve3(new V3(-.14-c*.02,.46,.17),new V3(-.12,.46-d,.315),new V3(.12,.46-d,.315),new V3(.14+c*.02,.46,.17)),26+c*4,.014);}
+ A(cyl(.055,.055,.014,20),B.chest,{p:[0,.2,.3],r:[PI/2,0,0],m:'gold',cat:'medallion'});A(torus(.055,.008,6,20),B.chest,{p:[0,.2,.307],m:'gold2',cat:'medallion'});
+ A(cone(.03,.05,4),B.chest,{p:[0,.2,.312],r:[PI/2,0,0],s:[1,1,.4],m:'gem',cat:'medallion'});for(let k=0;k<8;k++){const a=k/8*TAU;A(sphere(6,4),B.chest,{p:[Math.cos(a)*.042,.2+Math.sin(a)*.042,.31],s:.006,m:'ruby',cat:'medallion',small:true});}
  /* arms: velvet sleeves with fur cuffs, gloves with gold rings */
  for(const [sd,s] of [['L',1],['R',-1]]){const sh=B['sh'+sd],el=B['el'+sd],wr=B['wr'+sd];
   A(sphere(14,10),sh,{s:.1,m:'velvet',cat:'shoulders'});A(shell(.12,s>0?-.3:-2.84,s>0?2.84:.3,-.06,.1,.01,12,2,{taper:-.4}),sh,{m:'purple',cat:'shoulder pads'});
@@ -1648,7 +1648,7 @@ QUIPS[0].vs[4]={win:'Nice hat, Lord. Shame about the face under it.',lose:'Lost 
 QUIPS[2].vs[4]={win:'Your cane is no katana, Lord.',lose:'The Lord\'s shades blinded me. That is my story.'};QUIPS[3].vs[4]={win:'I vanished. Your dignity followed.',lose:'Out-dramatised by a bathrobe. Unthinkable.'};
 function pickQuip(mi,kind,opp){const Q=QUIPS[mi];const v=Q.vs&&Q.vs[opp]&&Q.vs[opp][kind];const arr=Q[kind];if(v&&rnd()<.5)return v;return arr[Math.floor(rnd()*arr.length)];}
 function bubble(f,text,delay){const gen=G.qGen||0;setTimeout(()=>{if(!f||!f.root.parent||gen!==(G.qGen||0)){G.qPend=Math.max(0,(G.qPend||0)-1);return;}const e=document.createElement('div');e.className='quip s'+f.side;e.textContent=text;document.body.appendChild(e);G.bubbles.push({e,f,t:3.9});G.qPend=Math.max(0,(G.qPend||0)-1);},delay*1000);G.qPend=(G.qPend||0)+1;}
-G.bubbles=[];function updBubbles(dt){for(const b of G.bubbles){b.t-=dt;const p=b.f.chest().add(new V3(0,1.5,0)).project(camera);b.e.style.left=clamp((p.x*.5+.5)*innerWidth,90,innerWidth-90)+'px';b.e.style.top=Math.max(90,(-p.y*.5+.5)*innerHeight)+'px';if(b.t<=0)b.e.remove();}G.bubbles=G.bubbles.filter(b=>b.t>0);}
+G.bubbles=[];function updBubbles(dt){const placed=[];for(const b of G.bubbles){b.t-=dt;const p=b.f.chest().add(new V3(0,1.5,0)).project(camera);const hw=Math.min(b.e.offsetWidth/2+8,innerWidth/2),hh=b.e.offsetHeight;let bx=clamp((p.x*.5+.5)*innerWidth,hw,innerWidth-hw),by=Math.max(hh+70,(-p.y*.5+.5)*innerHeight);for(const o of placed){if(Math.abs(bx-o.x)<hw+o.hw&&by>o.y-o.hh-6&&by-hh<o.y+6)by=o.y+hh+10;}placed.push({x:bx,y:by,hw,hh});b.e.style.left=bx+'px';b.e.style.top=by+'px';if(b.t<=0)b.e.remove();}G.bubbles=G.bubbles.filter(b=>b.t>0);}
 function clearBubbles(){for(const b of G.bubbles)b.e.remove();G.bubbles=[];G.qGen=(G.qGen||0)+1;G.qPend=0;}
 function endQuips(w,l){clearBubbles();bubble(w,pickQuip(w.mi,'win',l.mi),.6);bubble(l,pickQuip(l.mi,'lose',w.mi),2.6);}
 /* ---- portraits for select screen (canvas art) ---- */
