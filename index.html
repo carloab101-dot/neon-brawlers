@@ -1434,9 +1434,9 @@ function clashStep(dt){const C=G.clash,[a,b]=F;C.t+=dt;
  for(const f of F){f.pose.hy=(f.pose.hy||0)+rr(-.004,.004);applyPose(f);}
  if(Math.abs(C.pow)>=1||C.t>=C.dur){document.getElementById('clash').style.display='none';G.clash=null;HUD.big('');if(C._hba)C._hba.life=0;if(C._hbb)C._hbb.life=0;
   for(const f of F){f.act=null;}
-  if(Math.abs(C.pow)<.08){for(const f of F){f.hp=Math.max(1,f.hp-8);f.flash=1;HUD.hit(f.side);}burst(mid,80,[0xffffff,0xb040ff,0x29e6ff],6,{life:.6,s0:.08});HUD.big('DRAW!','both blasted');G.clashWin=-1;}
+  if(Math.abs(C.pow)<.08){for(const f of F){f.hp=Math.max(1,f.hp-8);f.flash=1;HUD.hit(f.side);}burst(mid,80,[0xffffff,0xb040ff,0x29e6ff],6,{life:.6,s0:.08});HUD.big('DRAW!','both blasted',1500);G.clashWin=-1;}
   else{const w=C.pow>0?a:b,l=C.pow>0?b:a;G.clashWin=w.side;FX.beams.push({a:()=>beamTip(w),b:()=>l.chest(),life:.7,col:w.mi===4?0xb040ff:0xffb347});l.hp=Math.max(0,l.hp-24);l.vx=w.dir*6;l.vy=2;l.flash=1;HUD.hit(l.side);popDmg(l.chest(),24,true);burst(l.chest(),90,[0xffffff,0xb040ff,0xffc23a],7,{life:.6,s0:.08});G.flash=.7;G.shake=.5;sfx('slam');
-   HUD.big(w.info.name,'WINS THE CLASH!');setTimeout(()=>{if(HUD.el.bsub.textContent==='WINS THE CLASH!')HUD.big('');},1300);if(l.hp<=0)doKO(l,w);}}}
+   HUD.big(w.info.name,'WINS THE CLASH!',1500);if(l.hp<=0)doKO(l,w);}}}
 
 function moveFX3(f,o,d,a,dt){const B=f.B,t=a.t,once=(k,tt)=>{if(!a.fxs[k]&&t>=tt){a.fxs[k]=1;G.fxLog[d.name+':'+k]=(G.fxLog[d.name+':'+k]||0)+1;return true;}return false;};const tip=()=>B.wrR.localToWorld(new V3(0,-1.08,.05));
  switch(d.fx){
@@ -1456,7 +1456,7 @@ function poseAt(keys,t,guard){let i=0;while(i<keys.length-1&&keys[i+1][0]<t)i++;
 const clonePose=p=>{const o={};for(const k in p)o[k]=Array.isArray(p[k])?p[k].slice():p[k];return o;};
 class Fighter{constructor(side,mechIdx){this.side=side;this.mi=mechIdx;const M=BUILDERS[mechIdx]();this.M=M;this.B=M.B;this.spec=M.spec;this.K=M.K;this.info=MECH_INFO[mechIdx];
   this.guard=GUARD[mechIdx];this.moves=MOVES[mechIdx];this.root=M.B.root;scene.add(this.root);this.reset();}
- reset(){this.hp=100;this.x=this.side===0?-1.6:1.6;this.z=0;this.vx=0;this.y=0;this.vy=0;this.act=null;this.cd=[0,0,0];this.block=false;this.ko=false;this.walk=0;this.wph=0;this.pose=clonePose(this.guard);this.snap=null;this.flash=0;this.state='idle';this.face=this.side===0?1:-1;this.aiT=0;this.blockT=0;if(this.root)this.root.visible=true;this.advFace=this.side?-1:1;}
+ reset(){this.hp=100;this.x=this.side===0?-1.6:1.6;this.z=0;this.zyaw=0;this.vx=0;this.y=0;this.vy=0;this.act=null;this.cd=[0,0,0];this.block=false;this.ko=false;this.walk=0;this.wph=0;this.pose=clonePose(this.guard);this.snap=null;this.flash=0;this.state='idle';this.face=this.side===0?1:-1;this.aiT=0;this.blockT=0;if(this.root)this.root.visible=true;this.advFace=this.side?-1:1;}
  get dir(){return this.face;}
  start(def,opt){this.act={def,t:0,hitDone:{},fxs:{}};this.snap=clonePose(this.pose);if(!opt||!opt.quiet)G.moveLog.push({side:this.side,mech:this.info.short,name:def.name,t:+G.t.toFixed(2)});}
  chest(v){return this.B.chest.getWorldPosition(v||new V3()).add(new V3(0,.25,0));}}
@@ -1484,7 +1484,7 @@ function fighterUpdate(f,o,dt){const g=f.guard;
  f.x+=f.vx*dt;f.vx*=Math.exp(-dt*5);f.vy-=18*dt;f.y=Math.max(0,f.y+f.vy*dt);if(f.y<=0)f.vy=Math.max(0,f.vy);
  applyPose(f);}
 function applyPose(f){const B=f.B,p=f.pose;for(const b of BONES){const r=p[b];if(r)B[b].rotation.set(r[0],r[1],r[2]);}
- B.hips.position.y=f.spec.hipY+(p.hy||0);B.root.position.set(f.x+f.dir*(p.lz||0),f.y,f.z||0);B.root.rotation.set(0,f.dir>0?PI/2+(p.spin||0):-PI/2-(p.spin||0),0);}
+ B.hips.position.y=f.spec.hipY+(p.hy||0);B.root.position.set(f.x+f.dir*(p.lz||0),f.y,f.z||0);B.root.rotation.set(0,(f.dir>0?PI/2+(p.spin||0):-PI/2-(p.spin||0))-f.dir*(f.zyaw||0),0);}
 function resolveHit(f,o,h,d){if(ADV.on){advHit(f,h);return;}const dist=Math.abs(o.x-f.x);if(o.ko||dist>h.range)return;
  const blocking=o.block&&!o.act;const dmg=blocking?Math.ceil(h.dmg*.2):h.dmg;o.hp=Math.max(0,o.hp-dmg);
  const p=o.chest();p.x-=o.dir*.35;const col=h.col||(f.mi===0?0xffa040:0xffc060);
@@ -1542,9 +1542,9 @@ function camWindow(){const W_=innerWidth,H_=innerHeight,portrait=H_>W_*1.1;
 function camUpdate(dt){const Wn=camWindow();camera.aspect=innerWidth/innerHeight;
  if(G.photo){const P=G.photo;CAM.yc=P.yc||0;camera.fov=P.fov||38;CAM.target.set(...P.target);camera.position.set(P.target[0]+Math.sin(P.th)*Math.cos(P.ph)*P.dist,P.target[1]+Math.sin(P.ph)*P.dist,P.target[2]+Math.cos(P.th)*Math.cos(P.ph)*P.dist);camera.lookAt(CAM.target);camera.updateProjectionMatrix();return;}
  camera.fov=Wn.portrait?50:36;CAM.yc=(Wn.hi+Wn.lo)/2;const hy=(Wn.hi-Wn.lo)/2;
- const th=(Wn.portrait?.36:.32)+CAM.dth,ph=clamp((Wn.portrait?.15:.12)+CAM.dph,-.05,1.2);
+ const th=(ADV.on?(Wn.portrait?.2:.24):(Wn.portrait?.36:.32))+CAM.dth,ph=clamp((ADV.on?(Wn.portrait?.46:.44):(Wn.portrait?.15:.12))+CAM.dph,-.05,1.2);
  const fwd=new V3(-Math.sin(th)*Math.cos(ph),-Math.sin(ph),-Math.cos(th)*Math.cos(ph));const right=new V3().crossVectors(fwd,new V3(0,1,0)).normalize();const up=new V3().crossVectors(right,fwd);
- if(!CAM.locked){const AF=ADV.on?advActive():F;const mid=AF.reduce((q,f)=>q+f.x,0)/AF.length;const tgt=new V3(mid,1.3,ADV.on?AF.reduce((q,f)=>q+(f.z||0),0)/AF.length*.6:0);const tanV=Math.tan(camera.fov*PI/360),tanH=tanV*camera.aspect;let need=3;
+ if(!CAM.locked){const AF=ADV.on?advActive():F;const mid=AF.reduce((q,f)=>q+f.x,0)/AF.length;const tgt=new V3(mid,1.3,ADV.on?AF.reduce((q,f)=>q+(f.z||0),0)/AF.length*.8:0);const tanV=Math.tan(camera.fov*PI/360),tanH=tanV*camera.aspect;let need=3;
   if(ADV.on)need=Math.max(need,Wn.portrait?13:8.5);for(const f of AF)for(const [dx,dy,dz] of [[-.95,0,0],[.95,0,0],[0,2.75,0],[-.8,2.2,0],[.8,2.2,0],[0,0,.6],[0,0,-.6],[0,2.5,.45],[0,2.5,-.45]]){const p=new V3(f.x+dx,f.y+dy,dz+(f.z||0)).sub(tgt);
    const xr=p.dot(right),yu=p.dot(up),zf=p.dot(fwd);need=Math.max(need,Math.abs(xr)/(tanH*Wn.hx)-zf,Math.abs(yu)/(tanV*hy)-zf);}
   const k=G.snapCam?1:1-Math.exp(-dt*4);CAM.target.lerp(tgt,k);CAM.dist=lerp(CAM.dist,need,G.snapCam?1:1-Math.exp(-dt*3));G.snapCam=false;}
@@ -1563,7 +1563,7 @@ function buildHUD(){const h=document.getElementById('hud');
  '<div class="acts"><button type="button" data-m="-1" class="b jab">JAB</button><button type="button" data-m="0" class="b mv"><span class="cdf"></span><b></b></button><button type="button" data-m="1" class="b mv"><span class="cdf"></span><b></b></button><button type="button" data-m="2" class="b mv sp"><span class="cdf"></span><b></b></button></div>';
  HUD.el={};for(const id of ['n0','n1','f0','f1','g0','g1','t0','t1','w0','w1','rd','tm','big','bsub'])HUD.el[id]=document.getElementById(id);
  HUD.mv=[...c.querySelectorAll('.mv')];
- HUD.big=(a,b)=>{HUD.el.big.textContent=a;HUD.el.bsub.textContent=b||'';HUD.el.big.style.display=a?'block':'none';HUD.el.bsub.style.display=b?'block':'none';HUD.el.big.classList.remove('pop');void HUD.el.big.offsetWidth;HUD.el.big.classList.add('pop');};
+ HUD.big=(a,b,ms)=>{HUD.tok=(HUD.tok||0)+1;const tk=HUD.tok;clearTimeout(HUD.bt);if(ms)HUD.bt=setTimeout(()=>{if(HUD.tok===tk)HUD.big('');},ms);HUD.el.big.textContent=a;HUD.el.bsub.textContent=b||'';HUD.el.big.style.display=a?'block':'none';HUD.el.bsub.style.display=b?'block':'none';HUD.el.big.classList.remove('pop');void HUD.el.big.offsetWidth;HUD.el.big.classList.add('pop');};
  HUD.hit=s=>{const e=HUD.el['f'+s].parentNode.parentNode;e.classList.remove('hitj');void e.offsetWidth;e.classList.add('hitj');};
  HUD.labels=()=>{for(let s=0;s<2;s++){const f=F[s];const tg=G.mode==='vs1'?(s===PLAYER?'<em>P1</em> ':'<em class="cpu">CPU</em> '):(G.mode==='adv'&&s===1&&!G.advP2?'<em class="cpu">—</em> ':'<em>P'+(s+1)+'</em> ');HUD.el['n'+s].innerHTML=tg+f.info.name;HUD.el['n'+s].parentNode.style.opacity=(G.mode==='adv'&&s===1&&!G.advP2)?.25:1;HUD.el['t'+s].textContent=f.info.tag;}
   const P=F[G.mode==='vs1'?PLAYER:0];HUD.mv.forEach((b,i)=>{const mv=P.moves[i];b.querySelector('b').innerHTML='<small>'+['I','II','III'][i]+' · '+mv.type+' · '+mv.cd+'s</small>'+mv.name;});document.body.dataset.p=P.mi;};
@@ -1588,7 +1588,7 @@ function bindInput(){const el=renderer.domElement;const pts=new Map();let pinch=
  const up=e=>{pts.delete(e.pointerId);if(pts.size<2)pinch=null;};el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up);
  el.addEventListener('wheel',e=>{e.preventDefault();CAM.zoom=clamp(CAM.zoom*Math.exp(e.deltaY*.0012),.3,2.4);},{passive:false});
  el.addEventListener('dblclick',()=>{CAM.dth=0;CAM.dph=0;CAM.zoom=1;});
- addEventListener('keydown',onKeyDown);addEventListener('keyup',onKeyUp);addEventListener('blur',()=>{for(const I of IN){I.l=I.r=I.block=I.jump=0;}});
+ addEventListener('keydown',onKeyDown);addEventListener('keyup',onKeyUp);addEventListener('blur',()=>{for(const I of IN){I.l=I.r=I.block=I.jump=I.in=I.out=0;}});
  const ctl=document.getElementById('ctl');
  ctl.querySelectorAll('[data-k]').forEach(b=>{const k=b.dataset.k;const on=e=>{e.preventDefault();G.userGesture=true;INPUT[k]=1;b.classList.add('on');},off=e=>{e.preventDefault();INPUT[k]=0;b.classList.remove('on');};
   b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off);b.addEventListener('pointerleave',off);b.addEventListener('contextmenu',e=>e.preventDefault());});
@@ -1602,8 +1602,9 @@ function swapPlayer(){if(G.mode!=='vs1')return;PLAYER=1-PLAYER;F.forEach(f=>{f.w
 function onResize(){renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
 
 /* ---------- round flow ---------- */
-function resetRound(){for(const f of F){f.reset();applyPose(f);}HUD.ghost=[100,100];G.timer=60;G.phase='intro';G.phaseT=0;G.timeScale=1;HUD.big('ROUND '+G.round,F[0].info.name+'  vs  '+F[1].info.name);}
-function restartMatch(){G.round=1;G.wins=[0,0];FX.p.length=0;FX.trails.length=0;FX.bolts.length=0;FX.beams.length=0;resetRound();G.restarts=(G.restarts||0)+1;}
+function clearClash(){const cl=document.getElementById('clash');if(cl)cl.style.display='none';const bar=document.querySelector('#clash i');if(bar)bar.style.left='50%';const C=G.clash;if(C){if(C._hba)C._hba.life=0;if(C._hbb)C._hbb.life=0;}G.clash=null;if(HUD.el&&(HUD.el.big.textContent==='DRAW!'||HUD.el.bsub.textContent==='WINS THE CLASH!'))HUD.big('');}
+function resetRound(){clearClash();for(const f of F){f.reset();applyPose(f);}HUD.ghost=[100,100];G.timer=60;G.phase='intro';G.phaseT=0;G.timeScale=1;HUD.big('ROUND '+G.round,F[0].info.name+'  vs  '+F[1].info.name);}
+function restartMatch(){clearClash();G.round=1;G.wins=[0,0];FX.p.length=0;FX.trails.length=0;FX.bolts.length=0;FX.beams.length=0;resetRound();G.restarts=(G.restarts||0)+1;}
 function gameStep(dt){G.phaseT+=dt;if(ADV.on){advStep(dt);return;}const a=F[0],b=F[1];
  if(G.phase==='intro'){if(G.phaseT>1.3&&G.phaseT-dt<=1.3)HUD.big('FIGHT!','');if(G.phaseT>1.9){G.phase='fight';HUD.big('');}}
  else if(G.phase==='fight'){G.timer-=dt;if(G.timer<=0){G.timer=0;if(a.hp===b.hp){G.round++;resetRound();return;}const w=a.hp>b.hp?0:1;const l=F[1-w];l.hp=0;doKO(l,F[w]);HUD.big('TIME',F[w].info.name+' WINS ROUND '+G.round);}}
@@ -1620,6 +1621,7 @@ const ACTIONS=[['l','Move left'],['r','Move right'],['jab','Jab'],['block','Guar
 const DEF_BINDS=[{l:'KeyA',r:'KeyD',jab:'KeyW',block:'KeyS',s0:'KeyZ',s1:'KeyX',s2:'KeyC',jump:'Space',in:'KeyQ',out:'KeyE'},{l:'ArrowLeft',r:'ArrowRight',jab:'ArrowUp',block:'ArrowDown',s0:'KeyI',s1:'KeyO',s2:'KeyP',jump:'Enter',in:'KeyK',out:'KeyL'}];
 let BINDS=JSON.parse(JSON.stringify(DEF_BINDS));
 try{const s=JSON.parse(localStorage.getItem('nb_binds_v1')||'null');if(s&&s[0]&&s[1])for(let p=0;p<2;p++)for(const [a] of ACTIONS)if(typeof s[p][a]==='string')BINDS[p][a]=s[p][a];}catch(e){}
+(function(){const pool=['KeyQ','KeyE','KeyK','KeyL','KeyR','KeyF','KeyT','KeyG','KeyN','KeyM','KeyU','KeyJ','KeyH','KeyY'];const used=(c,p0,a0)=>[0,1].some(p=>ACTIONS.some(([a])=>!(p===p0&&a===a0)&&BINDS[p][a]===c));for(let p=0;p<2;p++)for(const a of ['in','out']){if(BINDS[p][a]&&!used(BINDS[p][a],p,a))continue;BINDS[p][a]=pool.find(c=>!used(c,p,a))||null;}})();
 function saveBinds(){try{localStorage.setItem('nb_binds_v1',JSON.stringify(BINDS));}catch(e){}updHelp();}
 function keyName(c){if(!c)return '—';const m={ArrowLeft:'←',ArrowRight:'→',ArrowUp:'↑',ArrowDown:'↓',Space:'Space',Enter:'Enter',ShiftLeft:'L-Shift',ShiftRight:'R-Shift',ControlLeft:'L-Ctrl',ControlRight:'R-Ctrl',AltLeft:'L-Alt',AltRight:'R-Alt',Backquote:'`',Minus:'-',Equal:'=',BracketLeft:'[',BracketRight:']',Backslash:'\\',Semicolon:';',Quote:"'",Comma:',',Period:'.',Slash:'/',Tab:'Tab'};
  if(m[c])return m[c];if(c.startsWith('Key'))return c.slice(3);if(c.startsWith('Digit'))return c.slice(5);if(c.startsWith('Numpad'))return 'Num '+c.slice(6);return c;}
@@ -1646,7 +1648,7 @@ QUIPS[4]={win:['I hate to see a cat go untrimmed.','Velvet don\'t wrinkle, and n
  vs:{0:{win:'Cute kimono, Tora. Call me when it comes in velvet.',lose:'Sakura sleeves beat the mink? World\'s gone sideways.'},1:{win:'Count, your monocle got nothing on my shades.',lose:'Old money. I respect it. Barely.'},2:{win:'All that armour and still no drip, Shogun.',lose:'Tell your banner it\'s tacky.'},3:{win:'Phantom? Baby, I\'m the one they can\'t stop seeing.',lose:'Fine, the cape is fly. Don\'t tell nobody I said it.'},4:{win:'Only one Lord in this litter, imposter.',lose:'Lost to myself. At least I lost to the best.'}}};
 QUIPS[0].vs[4]={win:'Nice hat, Lord. Shame about the face under it.',lose:'Lost to a walking shag carpet. Ugh.'};QUIPS[1].vs[4]={win:'Darling, that robe is a crime against taste.',lose:'Even I must admit... the hat is magnificent.'};
 QUIPS[2].vs[4]={win:'Your cane is no katana, Lord.',lose:'The Lord\'s shades blinded me. That is my story.'};QUIPS[3].vs[4]={win:'I vanished. Your dignity followed.',lose:'Out-dramatised by a bathrobe. Unthinkable.'};
-function pickQuip(mi,kind,opp){const Q=QUIPS[mi];const v=Q.vs&&Q.vs[opp]&&Q.vs[opp][kind];const arr=Q[kind];if(v&&rnd()<.5)return v;return arr[Math.floor(rnd()*arr.length)];}
+function pickQuip(mi,kind,opp){const Q=QUIPS[mi];const H=G.qHist||(G.qHist={});const h=H[mi+kind]||(H[mi+kind]=[]);const v=Q.vs&&Q.vs[opp]&&Q.vs[opp][kind];let L;if(v&&!h.includes(v)&&rnd()<.35)L=v;else{let pool=Q[kind].filter(l=>!h.includes(l));if(!pool.length){h.length=0;pool=Q[kind];}L=pool[Math.floor(rnd()*pool.length)];}h.push(L);while(h.length>Math.min(10,Q[kind].length-1))h.shift();return L;}
 function bubble(f,text,delay){const gen=G.qGen||0;setTimeout(()=>{if(!f||!f.root.parent||gen!==(G.qGen||0)){G.qPend=Math.max(0,(G.qPend||0)-1);return;}const e=document.createElement('div');e.className='quip s'+f.side;e.textContent=text;document.body.appendChild(e);G.bubbles.push({e,f,t:3.9});G.qPend=Math.max(0,(G.qPend||0)-1);},delay*1000);G.qPend=(G.qPend||0)+1;}
 G.bubbles=[];function updBubbles(dt){const placed=[];for(const b of G.bubbles){b.t-=dt;const p=b.f.chest().add(new V3(0,1.5,0)).project(camera);const hw=Math.min(b.e.offsetWidth/2+8,innerWidth/2),hh=b.e.offsetHeight;let bx=clamp((p.x*.5+.5)*innerWidth,hw,innerWidth-hw),by=Math.max(hh+70,(-p.y*.5+.5)*innerHeight);for(const o of placed){if(Math.abs(bx-o.x)<hw+o.hw&&by>o.y-o.hh-6&&by-hh<o.y+6)by=o.y+hh+10;}placed.push({x:bx,y:by,hw,hh});b.e.style.left=bx+'px';b.e.style.top=by+'px';if(b.t<=0)b.e.remove();}G.bubbles=G.bubbles.filter(b=>b.t>0);}
 function clearBubbles(){for(const b of G.bubbles)b.e.remove();G.bubbles=[];G.qGen=(G.qGen||0)+1;G.qPend=0;}
@@ -1691,11 +1693,11 @@ function buildMenus(){
  G.ports=[0,1,2,3,4].map(portrait);updHelp();}
 function updHelp(){const h=document.getElementById('help');if(!h)return;const k=(p,a)=>keyName(BINDS[p][a]);const t=p=>'P'+(p+1)+' '+k(p,'l')+'/'+k(p,'r')+' move · '+k(p,'in')+'/'+k(p,'out')+' depth · '+k(p,'jab')+' jab · '+k(p,'block')+' guard/use · '+k(p,'s0')+' '+k(p,'s1')+' '+k(p,'s2')+' specials · '+k(p,'jump')+' jump';h.textContent=t(0)+'   |   '+t(1)+'   |   Esc restart';}
 function pause(on){G.paused=!!on;for(const i of IN){i.l=i.r=i.block=i.jump=i.in=i.out=0;i.queue.length=0;}}
-function showMenu(){pause(true);G.ui='menu';G.ov.innerHTML='<div class="card"><h1>NEON BRAWLERS</h1><p class="sub">Tora &amp; Mochi mech showdown</p>'+
+function showMenu(){clearClash();pause(true);G.ui='menu';G.ov.innerHTML='<div class="card"><h1>NEON BRAWLERS</h1><p class="sub">Tora &amp; Mochi mech showdown</p>'+
  '<button class="mb big2" data-mode="vs2">👥 2 PLAYERS<small>(same keyboard)</small></button><button class="mb" data-mode="vs1">VERSUS · 1P vs CPU</button><button class="mb" data-mode="adv">ADVENTURE · CO-OP (1–2P)</button>'+
  '<button class="mb alt" id="mKeys">⌨ CONTROLS / KEYBINDS</button>'+(IS_TOUCH?'<p class="note">On a phone the touch pad drives Player 1. 2P modes need a keyboard.</p>':'<p class="note">P1: A D move · W jab · S guard · Z X C specials · Space jump &nbsp;|&nbsp; P2: ← → · ↑ jab · ↓ guard · I O P · Enter jump · Esc restarts</p>')+'</div>';
  G.ov.style.display='flex';G.ov.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>showSelect(b.dataset.mode));G.ov.querySelector('#mKeys').onclick=()=>showKeys(true,'menu');}
-function showSelect(mode){G.mode=mode;G.ui='select';const two=mode!=='vs1'&&!(mode==='adv'&&!G.advP2);
+function showSelect(mode){clearClash();G.mode=mode;G.ui='select';const two=mode!=='vs1'&&!(mode==='adv'&&!G.advP2);
  const slot=(p,lab)=>'<div class="slot s'+p+'"><div class="sl">'+lab+'</div><div class="cards">'+[0,1,2,3,4].map(i=>'<button class="pc'+(G.sel[p]===i?' on':'')+'" data-p="'+p+'" data-i="'+i+'"><img alt="'+MECH_INFO[i].name+'" src="'+G.ports[i]+'"><span>'+MECH_INFO[i].tag+'</span></button>').join('')+'</div></div>';
  G.ov.innerHTML='<div class="card wide"><h1>'+({vs1:'VERSUS · 1P vs CPU',vs2:'VERSUS · 2P LOCAL',adv:'ADVENTURE · CO-OP'}[mode])+'</h1><p class="sub">Pick your fighter (mirror picks allowed). P1: A/D + W · P2: ←/→ + ↑ · Enter = start</p>'+
  slot(0,'PLAYER 1')+(mode==='adv'?'<label class="tg2"><input type="checkbox" id="p2j" '+(G.advP2?'checked':'')+'> Player 2 joins</label>':'')+((mode!=='adv'||G.advP2)?slot(1,mode==='vs1'?'CPU':'PLAYER 2'):'')+
@@ -1703,7 +1705,7 @@ function showSelect(mode){G.mode=mode;G.ui='select';const two=mode!=='vs1'&&!(mo
  G.ov.querySelectorAll('.pc').forEach(b=>b.onclick=()=>{G.sel[+b.dataset.p]=+b.dataset.i;showSelect(mode);});
  const p2=G.ov.querySelector('#p2j');if(p2)p2.onchange=()=>{G.advP2=p2.checked;showSelect(mode);};
  G.ov.querySelector('#go').onclick=startMode;G.ov.querySelector('#back').onclick=showMenu;}
-function startMode(){G.ov.style.display='none';G.ui=null;clearBubbles();const a=G.sel[0],b=(G.mode==='adv'&&!G.advP2)?G.sel[0]:G.sel[1];
+function startMode(){clearClash();G.ov.style.display='none';G.ui=null;clearBubbles();const a=G.sel[0],b=(G.mode==='adv'&&!G.advP2)?G.sel[0]:G.sel[1];
  if(!F.length||F[0].mi!==a||F[1].mi!==b)setFighters(a,b);PLAYER=0;
  document.body.dataset.mode=G.mode;if(G.mode==='adv')advStart(1);else{advExit();restartMatch();}HUD.labels();pause(false);G.snapCam=true;}
 function restartCurrent(){clearBubbles();if(G.mode==='adv')advStart(1);else restartMatch();}
@@ -1740,7 +1742,8 @@ function ctrl(f,I,dt){if(G.phase!=='fight'||f.ko){f.walk=0;f.block=false;I.queue
  if(pad){if(I.block&&!I.padHold){I.padHold=1;usePad(f,pad);}f.block=false;}else f.block=!!I.block&&!f.act&&!I.padHold;
  const mv=(I.r?1:0)-(I.l?1:0),mz=ADV.on?(I.out?1:0)-(I.in?1:0):0;
  if(G.mode==='adv'&&mv)f.advFace=mv;
- f.walk=f.act||f.block?0:(mv?mv*f.dir:(mz?.8:0));if(!f.act&&!f.block){f.x+=mv*(G.mode==='adv'?2.2:1.7)*dt;if(mz)f.z=clamp((f.z||0)+mz*1.7*dt,LANE[0],LANE[1]);}
+ const dn=mv&&mz?Math.SQRT1_2:1;f.walk=f.act||f.block?0:(mv?mv*f.dir:(mz?1:0));if(!f.act&&!f.block){f.x+=mv*(G.mode==='adv'?2.2:1.7)*dn*dt;if(mz)f.z=clamp((f.z||0)+mz*2.1*dn*dt,LANE[0],LANE[1]);}
+ const zt=(ADV.on&&!f.act&&!f.block&&mz)?mz*(mv?.55:1.05):0;f.zyaw=(f.zyaw||0)+(zt-(f.zyaw||0))*Math.min(1,dt*10);
  if(I.jump){if(f.y<=0&&!f.act)f.vy=6.2;I.jump=0;}
  for(const q of I.queue)f.buf={i:q,t:.3};I.queue.length=0;if(f.buf){if(doMove(f,f.buf.i))f.buf=null;else{f.buf.t-=dt;if(f.buf.t<=0)f.buf=null;}}}
 /* ================= ADVENTURE ================= */
@@ -1789,11 +1792,11 @@ const KQ={
  3:{gen:['Now you see me, now you\'re scrap.','Curtain call, darling.','Poof. Gone. Like my patience.','A phantom never leaves fingerprints.','That was the trick. You were the rabbit.','Exit stage floor.','Haunted you, didn\'t I?','Encore? No.','Moonlight suits your wreckage.','Too slow for a ghost.'],d:['Flying is for phantoms only.','Drone dropped. Dramatically.'],m:['Big lunk, no finesse.','Brute? Brutally outclassed.'],g:['You can\'t shoot a ghost, dear.','Missed me. Everyone does.'],B:['The Titan bows to the phantom.','Giant exit, little encore.'],N:['Only one phantom in this city, Lich.','Ghost versus ghoul. Ghost wins.']},
  4:{gen:['I hate to see a cat go untrimmed.','Velvet beats steel, baby.','Another one for the Lord\'s collection.','Slapped back to the factory.','Watch the hat. Always watch the hat.','Backhand: certified strong.','That\'s a trim, sugar.','Litter, meet Lord.','You scuffed my platforms. Unforgivable.','Shine my cane on your way out.'],d:['Drone zoned, baby.','Grounded. Like your attitude.'],m:['Brute got backslapped.','Big fella, no drip.'],g:['You brought a pea-shooter to a railgun party.','Aim\'s off, style\'s off.'],B:['Titan got trimmed!','The Lord always outclasses the boss.'],N:['Litter Lich got trimmed!','Purple is MY colour, sugar.']}};
 function killQuip(f,type){if(!f||f.side>1)return;const boss=type==='B'||type==='N';if(!boss&&(G.kqT||0)>G.t)return;G.kqT=G.t+2.6;const Q=KQ[f.mi];const hist=f.kqHist||(f.kqHist=[]);const spec=Q[type];
- const src=boss?spec:(spec&&rnd()<.45?spec:Q.gen);let pool=src.filter(l=>!hist.includes(l));if(!pool.length)pool=Q.gen.filter(l=>!hist.includes(l));const L=pool[Math.floor(rnd()*pool.length)];hist.push(L);while(hist.length>3)hist.shift();
+ const src=boss?spec:(spec&&rnd()<.45?spec:Q.gen);let pool=src.filter(l=>!hist.includes(l));if(!pool.length)pool=Q.gen.filter(l=>!hist.includes(l));const L=pool[Math.floor(rnd()*pool.length)];hist.push(L);while(hist.length>10)hist.shift();
  const e=document.createElement('div');e.className='quip kq s'+f.side;e.textContent=L;document.body.appendChild(e);G.bubbles.push({e,f,t:boss?3:2});(G.kqLog=G.kqLog||[]).push({side:f.side,type,line:L});}
 
 /* ================= ADVENTURE (10 levels, depth lanes) ================= */
-const LANE=[-2.0,1.4];
+const LANE=[-3.4,3.0];
 const THEMES=[{fog:0x120a24,ground:0x101118,b1:0x0c0d16,neon:[0xff2ea0,0x29e6ff],deco:0},{fog:0x1a0818,ground:0x1a0f16,b1:0x160a12,neon:[0xffb020,0xff2ea0],deco:1},
  {fog:0x1c0c04,ground:0x18120e,b1:0x120c08,neon:[0xff6a00,0x29e6ff],deco:2},{fog:0x140622,ground:0x120a1a,b1:0x10061a,neon:[0xb040ff,0x40ff90],deco:3}];
 const LV=(name,th,len,waves,extra)=>Object.assign({name,len,waves:waves.map(([x,l])=>[x,[...l]])},THEMES[th],extra||{});
@@ -1841,17 +1844,21 @@ function makeEnemy(type,x,z){const g=new T.Group(),M=ADV.mat,Gm=ADV.geo;const ad
   for(let k=0;k<5;k++)add(Gm.box,M.accent,[-.5+k*.25,1.6,.46],[.12,.9,.02]);for(let k=0;k<6;k++)add(Gm.ico,M.rock,[rr(-.6,.6),rr(.9,2.2),rr(-.45,.45)],[.16,.14,.16]);e.st='walk';e.cd=1.2;}
  g.position.set(x,0,e.z);ADV.group.add(g);e.sh=shadowBlob(type==='B'?1.2:type==='N'?.8:type==='d'?.35:.5);
  e.chest=()=>new V3(e.x,(e.type==='B'?1.8:e.type==='N'?1.6:e.type==='g'?1.1:(e.type==='d'?e.hover:1)),e.z);return e;}
-function advBuildStage(i){advMats();if(ADV.group){scene.remove(ADV.group);ADV.group.traverse(o=>{if(o.isMesh&&o.geometry&&!Object.values(ADV.geo).includes(o.geometry))o.geometry.dispose();});}
+function advBuildStage(i){advMats();if(ADV.laneMats){ADV.laneMats.forEach(m=>m.dispose());ADV.laneMats=null;}if(ADV.group){scene.remove(ADV.group);ADV.group.traverse(o=>{if(o.isMesh&&o.geometry&&!Object.values(ADV.geo).includes(o.geometry))o.geometry.dispose();});}
  const S=STAGES[i];const g=new T.Group();ADV.group=g;scene.add(g);ADV.mat.ground.color.set(S.ground);ADV.mat.bld.color.set(S.b1);
- const fl=new T.Mesh(new T.PlaneGeometry(S.len+40,14),ADV.mat.ground);fl.rotation.x=-PI/2;fl.position.set(S.len/2,0,-3);fl.receiveShadow=true;g.add(fl);
+ const fl=new T.Mesh(new T.PlaneGeometry(S.len+40,26),ADV.mat.ground);fl.rotation.x=-PI/2;fl.position.set(S.len/2,0,-4);fl.receiveShadow=true;g.add(fl);
  const N=Math.ceil((S.len+30)/2.4);const bi=new T.InstancedMesh(ADV.geo.box,ADV.mat.bld,N*2);const wi=new T.InstancedMesh(ADV.geo.box,ADV.mat.win,N*8);const m4=new T.Matrix4(),q=new T.Quaternion(),c=new T.Color();let wn=0;
  for(let k=0;k<N*2;k++){const back=k>=N;const x=-12+(k%N)*2.4+rr(-.3,.3),h=back?rr(8,16):rr(3,7),z=back?-12:-6.5;m4.compose(new V3(x,h/2,z),q,new V3(rr(1.6,2.3),h,rr(1.5,2.5)));bi.setMatrixAt(k,m4);
   for(let w=0;w<4&&wn<N*8;w++){m4.compose(new V3(x+rr(-.6,.6),rr(1,h-.5),z+1.3),q,new V3(rr(.3,1.4),rr(.08,.35),.04));wi.setMatrixAt(wn,m4);c.set(S.neon[w%2]).multiplyScalar(rr(1.5,4));wi.setColorAt(wn,c);wn++;}}
  wi.count=wn;g.add(bi,wi);const d=S.deco;
- if(d===0){for(let k=0;k<Math.ceil(S.len/3.2);k++){const ac=new T.Mesh(ADV.geo.box,ADV.mat.body);ac.position.set(k*3.2+1,.35,-2.9);ac.scale.set(.9,.7,.7);ac.castShadow=true;g.add(ac);}}
- if(d===1){for(let k=0;k<Math.ceil(S.len/3);k++){const st=new T.Mesh(ADV.geo.box,ADV.mat.accent);st.position.set(k*3+1,2.4,-3.0);st.scale.set(1.8,.08,1.2);g.add(st);}}
- if(d===2){for(let k=0;k<Math.ceil(S.len/4);k++){const p=new T.Mesh(ADV.geo.box,ADV.mat.body);p.position.set(k*4,3,-3.3);p.scale.set(.5,6,.5);p.castShadow=true;g.add(p);const gl=new T.Mesh(ADV.geo.sph,ADV.mat.accent);gl.position.set(k*4+2,.3,-2.8);gl.scale.set(.6,.3,.6);g.add(gl);}}
- if(d===3){for(let k=0;k<Math.ceil(S.len/3.5);k++){const t=new T.Mesh(ADV.geo.box,ADV.mat.body);t.position.set(k*3.5+1,.6,-3.0);t.scale.set(.7,1.2,.25);t.castShadow=true;g.add(t);const cnd=new T.Mesh(ADV.geo.sph,ADV.mat.orbP);cnd.position.set(k*3.5+1,1.35,-3.0);cnd.scale.setScalar(.09);g.add(cnd);}}
+ if(d===0){for(let k=0;k<Math.ceil(S.len/3.2);k++){const ac=new T.Mesh(ADV.geo.box,ADV.mat.body);ac.position.set(k*3.2+1,.35,-4.4);ac.scale.set(.9,.7,.7);ac.castShadow=true;g.add(ac);}}
+ if(d===1){for(let k=0;k<Math.ceil(S.len/3);k++){const st=new T.Mesh(ADV.geo.box,ADV.mat.accent);st.position.set(k*3+1,2.4,-4.5);st.scale.set(1.8,.08,1.2);g.add(st);}}
+ if(d===2){for(let k=0;k<Math.ceil(S.len/4);k++){const p=new T.Mesh(ADV.geo.box,ADV.mat.body);p.position.set(k*4,3,-4.8);p.scale.set(.5,6,.5);p.castShadow=true;g.add(p);const gl=new T.Mesh(ADV.geo.sph,ADV.mat.accent);gl.position.set(k*4+2,.3,-4.3);gl.scale.set(.6,.3,.6);g.add(gl);}}
+ if(d===3){for(let k=0;k<Math.ceil(S.len/3.5);k++){const t=new T.Mesh(ADV.geo.box,ADV.mat.body);t.position.set(k*3.5+1,.6,-4.5);t.scale.set(.7,1.2,.25);t.castShadow=true;g.add(t);const cnd=new T.Mesh(ADV.geo.sph,ADV.mat.orbP);cnd.position.set(k*3.5+1,1.35,-4.5);cnd.scale.setScalar(.09);g.add(cnd);}}
+ {const cm=new T.MeshBasicMaterial({color:S.neon[0],fog:true}),rm=new T.MeshBasicMaterial({color:S.neon[1],transparent:true,opacity:.45,fog:true,depthWrite:false});ADV.laneMats=[cm,rm];
+  for(const z of [LANE[0]-.32,LANE[1]+.32]){const c=new T.Mesh(ADV.geo.box,cm);c.position.set(S.len/2,.03,z);c.scale.set(S.len+24,.06,.1);g.add(c);}
+  const rows=[];for(let z=LANE[0]+1.6;z<LANE[1]-.2;z+=1.6)rows.push(z);const nx=Math.ceil((S.len+20)/1.6);const di=new T.InstancedMesh(ADV.geo.box,rm,rows.length*nx);let n=0;
+  for(const z of rows)for(let k=0;k<nx;k++){m4.compose(new V3(-10+k*1.6,.012,z),q,new V3(.7,.01,.06));di.setMatrixAt(n++,m4);}di.count=n;g.add(di);}
  const gate=new T.Mesh(ADV.geo.tor,ADV.mat.accent);gate.position.set(S.len,1.6,-.6);gate.scale.set(1.6,1.6,1.6);g.add(gate);
  scene.fog=new T.FogExp2(S.fog,.035);}
 function padTier(){const r=rnd(),L=ADV.stage+1;if(L>=8)return r<.25?2:(r<.75?1:0);if(L>=4)return r<.07?2:(r<.67?1:0);return r<.85?0:1;}
@@ -1861,8 +1868,8 @@ function advStart(st){ADV.on=true;ADV.stage=st-1;G.mode='adv';G.wins=[0,0];G.rou
  if(st===1){ST=[{kos:0,dmg:0,taken:0,specials:0},{kos:0,dmg:0,taken:0,specials:0}];ADV.t0=G.t;G.titanEnraged=0;}
  const S=STAGES[ADV.stage];for(const f of F){const wk=f.ko,hp0=f.hp;f.reset();f.hp=st>1?(wk?40:hp0):100;f.x=f.side?1.4:0;f.z=f.side?.6:-.2;f.advFace=1;f.root.visible=f.side===0||G.advP2;applyPose(f);}
  {const n=1+(rnd()<.5?1:0);for(let k=0;k<n;k++){const [x,z]=padSpot();spawnPad(x,z,padTier());}}
- G.phase='intro';G.phaseT=0;G.timer=99;G.timeScale=1;HUD.big('LEVEL '+st+' / '+STAGES.length,S.name+(st>1?' · health carries over':''));G.snapCam=true;document.body.dataset.mode='adv';HUD.labels();HUD.boss(null);}
-function advExit(){if(!ADV.on)return;ADV.on=false;for(const o of ADV.pads)o.pr.remove();ADV.pads=[];if(ADV.group){scene.remove(ADV.group);}ADV.group=null;G.W.group.visible=true;scene.fog=G.baseFog||null;for(const f of F){f.root.visible=true;f.z=0;}HUD.boss(null);L_reset();}
+ clearClash();G.phase='intro';G.phaseT=0;G.timer=99;G.timeScale=1;HUD.big('LEVEL '+st+' / '+STAGES.length,S.name+(st>1?' · health carries over':' · '+keyName(BINDS[0].in)+'/'+keyName(BINDS[0].out)+' or ▲▼ walk in/out'));G.snapCam=true;document.body.dataset.mode='adv';HUD.labels();HUD.boss(null);}
+function advExit(){clearClash();if(!ADV.on)return;ADV.on=false;for(const o of ADV.pads)o.pr.remove();ADV.pads=[];if(ADV.group){scene.remove(ADV.group);}ADV.group=null;G.W.group.visible=true;scene.fog=G.baseFog||null;for(const f of F){f.root.visible=true;f.z=0;}HUD.boss(null);L_reset();}
 function L_reset(){if(G.L){G.L.key.position.set(2.5,11,5);G.L.key.target.position.set(0,1,0);G.L.pink.position.x=-5;G.L.cyan.position.x=5;}}
 function advActive(){return F.filter(f=>f.side===0||G.advP2);}
 const AOE_FX=['quake','storm','makerain','overdrive','vortex'];
@@ -1884,10 +1891,10 @@ function enemyStep(e,P,dt){const tg=P.filter(f=>!f.ko);let t=null,bd=1e9;for(con
  e.x+=e.vx*dt;e.vx*=Math.exp(-dt*6);
  if(e.stun>0){e.stun-=dt;}else if(t&&G.phase==='fight'){e.face=Math.sign(t.x-e.x)||1;const dx=Math.abs(t.x-e.x),dz=(t.z||0)-e.z;
   if(e.type==='g'){const sp=1.1;if(e.wind>0){e.wind-=dt;const m=e.muzzle();holdBeam(e,'s',()=>m,()=>new V3(m.x+e.face*9,m.y,m.z),0xff3040,.08);if(e.wind<=0){fireShot(m.x,m.y,m.z,e.face,6,'bolt',e);e.cd=rr(1.8,2.6);sfx('zap');}}
-   else{if(dx<3.6)e.x-=e.face*sp*dt;else if(dx>6)e.x+=e.face*sp*dt;if(Math.abs(dz)>.1)e.z+=clamp(dz,-1,1)*.9*dt;e.cd-=dt;if(e.cd<=0&&Math.abs(dz)<.3&&dx<9)e.wind=.6;}}
+   else{if(dx<3.6)e.x-=e.face*sp*dt;else if(dx>6)e.x+=e.face*sp*dt;if(Math.abs(dz)>.1)e.z+=clamp(dz*2,-1,1)*1.6*dt;e.cd-=dt;if(e.cd<=0&&Math.abs(dz)<.3&&dx<9)e.wind=.6;}}
   else{const reach=1.2,sp=e.type==='d'?1.6:1.2;
    if(e.wind>0){e.wind-=dt;if(e.wind<=0){for(const q of P)if(!q.ko&&(q.x-e.x)*e.face>-.3&&Math.abs(q.x-e.x)<reach+.4&&Math.abs((q.z||0)-e.z)<.6)advHurt(q,e.type==='d'?5:7,e);e.cd=rr(1.1,1.9);}}
-   else{if(Math.abs(dz)>.12)e.z+=clamp(dz,-1,1)*sp*.8*dt;if(dx>reach)e.x+=e.face*sp*dt;else if(Math.abs(dz)<.5){e.cd-=dt;if(e.cd<=0)e.wind=.4;}}}}
+   else{if(Math.abs(dz)>.12)e.z+=clamp(dz*2,-1,1)*sp*1.15*dt;if(dx>reach)e.x+=e.face*sp*dt;else if(Math.abs(dz)<.5){e.cd-=dt;if(e.cd<=0)e.wind=.4;}}}}
  e.z=clamp(e.z,LANE[0],LANE[1]);if(ADV.lock)e.x=clamp(e.x,ADV.lock[0]-1,ADV.lock[1]+1);
  e.g.position.set(e.x,e.type==='d'?e.hover+Math.sin(G.t*4+e.x)*.12-1.0+(e.wind>0?-.2:0):0,e.z);e.g.rotation.y=e.face>0?PI/2*.8:-PI/2*.8;e.sh.position.set(e.x,.012,e.z);
  const sw=Math.sin(G.t*8+e.x);if(e.leg1){e.leg1.rotation.x=sw*.5;e['leg-1'].rotation.x=-sw*.5;}if(e.arm1&&e.type==='m'){const wv=e.wind>0?-2.2:sw*.4;e.arm1.rotation.x=wv;e['arm-1'].rotation.x=-sw*.4;}
@@ -1897,7 +1904,7 @@ function titanStep(e,P,dt){const tg=P.filter(f=>!f.ko);let t=null,bd=1e9;for(con
  const sp=e.enraged?1.45:1;e.x+=e.vx*dt;e.vx*=Math.exp(-dt*6);if(e.slam2>0){e.slam2-=dt;if(e.slam2<=0){const c=e.slamC;ring(new V3(c.x,.05,c.z),.3,4.2,.55,0xff3010,4,false);G.shake=.35;for(const q of P)if(!q.ko&&Math.hypot(q.x-c.x,(q.z||0)-c.z)<4.0&&Math.hypot(q.x-c.x,(q.z||0)-c.z)>1.2)advHurt(q,8,e);}}
  if(e.enraged&&rnd()<.4)spark(e.chest().add(new V3(rr(-.7,.7),rr(-.6,1),rr(-.4,.4))),new V3(0,rr(1,3),0),0xff4010,{life:.5,s0:.07,k:3});
  if(t&&G.phase==='fight'){const dx=t.x-e.x,dz=(t.z||0)-e.z;
-  if(e.st==='walk'){e.face=Math.sign(dx)||1;if(Math.abs(dx)>2.2)e.x+=e.face*.9*sp*dt;if(Math.abs(dz)>.15)e.z+=clamp(dz,-1,1)*.7*sp*dt;e.cd-=dt*sp;
+  if(e.st==='walk'){e.face=Math.sign(dx)||1;if(Math.abs(dx)>2.2)e.x+=e.face*.9*sp*dt;if(Math.abs(dz)>.15)e.z+=clamp(dz,-1,1)*1.0*sp*dt;e.cd-=dt*sp;
    if(e.cd<=0){if(Math.abs(dx)<2.8&&Math.abs(dz)<1.3){e.st='slamW';e.wt=.65/sp;}else if(Math.abs(dz)<.5&&Math.abs(dx)>3&&rnd()<.55){e.st='rushW';e.wt=.75/sp;G.titanRush=(G.titanRush||0)+1;}else{e.st='throwW';e.wt=.6/sp;}}}
   else if(e.st==='slamW'){e.wt-=dt;if(e.arm1){e.arm1.rotation.x=-2.6;e['arm-1'].rotation.x=-2.6;}if(e.wt<=0){const c={x:e.x+e.face*1.5,z:e.z};ring(new V3(c.x,.05,c.z),.3,3,.45,0xff6a00,4,false);G.shake=.35;sfx('slam');for(const q of P)if(!q.ko&&Math.hypot(q.x-c.x,(q.z||0)-c.z)<2.6)advHurt(q,14,e);
     if(e.enraged){e.slam2=.35;e.slamC=c;}e.st='walk';e.cd=1.6;G.titanSlams=(G.titanSlams||0)+1;if(e.arm1){e.arm1.rotation.x=0;e['arm-1'].rotation.x=0;}}}
@@ -1964,6 +1971,35 @@ function showStats(){const P=advActive().map(f=>f.side);const best=k=>{let m=-1,
   '<div class="row"><button class="mb" id="sAgain">PLAY AGAIN ▶</button><button class="mb alt" id="sMenu">MENU</button></div></div>';G.ov.style.display='flex';
  G.ov.querySelector('#sAgain').onclick=()=>{G.ov.style.display='none';G.ui=null;pause(false);advStart(1);};G.ov.querySelector('#sMenu').onclick=showMenu;}
 
+
+/* ===== Stage C: extra kill quips + fight lines (no-repeat) ===== */
+(function(){const add=(o,k,arr)=>{o[k]=(o[k]||[]).concat(arr.filter(l=>!(o[k]||[]).includes(l)));};
+ // ---- Count Mochi: pompous monocled aristocat ----
+ add(KQ[1],'gen',['Ghastly. Simply ghastly. Next.','I have dismissed butlers with more spine.','Do mind the carpet on your way down.','Pinkies out, robots down.','How rude of you. Exploding, I mean.','I shall have Jeeves sweep you under the rug.','One lump or two? Two. Definitely two.','Your bolts are showing, darling. How common.','I have coughed up hairballs with better breeding.','Etiquette lesson one: lie still.','Tea is at four. You were finished at three fifty-nine.','Spare me the sparks. This coat was just pressed.','Kindly do not rust on my good boots.','Mother said never brawl before tea. Mother was mistaken.','I knocked it off the table. As is tradition.','I nap eighteen hours a day and still outwork you.','Monocle polished. Scrap demolished.','Frightfully sorry. No, I am not.','Is that oil? On MY cravat? Unforgivable.','I shall add you to my list of things I ignore.','You may kiss the ring. The ring on my paw.','Ah, the sweet clatter of inferior engineering.','Daintily done, if I say so myself. And I do.','I would offer a handkerchief, but you have no face.','That is what the staff is for. Fetch a dustpan.','Breeding, dear. One simply cannot buy it.','Crumpets crumble more gracefully than you.','Tally-ho, and goodbye.','One does not chase the red dot. The red dot chases one.','Silver spoon, iron paw.']);
+ add(KQ[1],'d',['Shoo, fly. Do not bother the aristocracy.','I simply could not resist batting at it.','Hovering is so terribly nouveau riche.','Grounded, like a naughty kitten.','A flying gadget? Without an invitation? Down.']);
+ add(KQ[1],'m',['Such a large fellow. Such a small vocabulary.','Brute, you have the table manners of a dog.','Lumbering is not a personality, dear.','I have silk cushions tougher than you.','Big boned? No. Big BONKED.']);
+ add(KQ[1],'g',['Pointing is rude. Pointing lasers is ruder.','I adore a red dot. Pity you aimed it at me.','A duel at dawn? It is past noon, peasant.','Missed the shot and missed the dress code.','Such marksmanship. Positively provincial.']);
+ add(KQ[1],'B',['A titan? I have napped on larger sofas.','Even a cupboard falls if one pushes it off the shelf.','Down goes the oversized kettle.','Do send my regards to the scrapyard, old boy.','Size is no substitute for breeding.']);
+ add(KQ[1],'N',['Raising the dead before tea? Appalling manners.','Back in the box, Lich. The LITTER box.','Undead AND underdressed. Dreadful combination.','You call that a staff? I call it a stirring spoon.','I shall have you dusted. Twice. With the good feather duster.']);
+ add(QUIPS[1],'win',['Victory, like tea, is best served at precisely the right temperature.','Kindly remove yourself from my ring. And my sight.','I won without spilling a drop of Earl Grey.','Do sign the guest book on your way out. In crayon, I presume.','Splendid. Now bring the cushion. The velvet one.','You fought like a cat chasing its own tail. Admirably pointless.','My monocle saw everything. It was not impressed.','Ring the bell, Jeeves. The commoner has been dismissed.','I shall have this victory embroidered on a doily.','Bow, curtsy, or simply lie there. All are acceptable.']);
+ add(QUIPS[1],'lose',['I shall be speaking to your manager. And your mother.','I slipped on a doily. It happens to the best of us.','Defeated? Nonsense. I was resting my eyes.','Fine. But I am taking the good cushion as compensation.','This never happened. I have people for that.','My monocle fell out. Everything after that is hearsay.','I demand a rematch, a footman and a saucer of cream.','You won the battle. I still won the dress code.','Ugh. I need a fainting couch and a cup of chamomile.']);
+ // ---- Tora: scrappy sakura street cat ----
+ add(KQ[0],'gen',['Knocked flat. Cherry on top.','Sakura season: falling robots.','Pow! Right in the bolts.','I nap, I punch, I win.','Belly rub? Not for you, scrap.','My sleeves have more fight in them.','Zoomies activated. You lost.','Nine lives. You had zero.','Fish for me, scrap for you.','That was a love tap. Imagine a real one.']);
+ add(KQ[0],'d',['Got the birdie! Mine! MINE!']);add(KQ[0],'m',['Big kitty treats for a big takedown.']);add(KQ[0],'g',['Red dot? I CATCH red dots.']);add(KQ[0],'B',['Titan tipped over like a cereal box.']);add(KQ[0],'N',['Spooky? I have seen scarier vacuum cleaners.']);
+ add(QUIPS[0],'win',['Sakura falls, and so do you.','I am the main character, obviously.','Treats. Now. I earned them.']);add(QUIPS[0],'lose',['I was not ready! I was grooming!','Rematch. After my nap.']);
+ // ---- Shogun: honour, armour, snacks ----
+ add(KQ[2],'gen',['The blade sleeps. You sleep longer.','One clean cut. One clean scrap pile.','Honour demands snacks after this.','Your armour is tin foil. Mine is legend.','A samurai never chases the laser. He conquers it.','Discipline. Also claws.','The scroll foretold this. It also mentioned tuna.','Kneel to the banner of the Shogun.','I bow to no robot. You bow to the floor.','Silent strike. Loud crash.']);
+ add(KQ[2],'d',['A bird? I am a cat. You know how this ends.']);add(KQ[2],'m',['Strength meets strategy. Strategy wins.']);add(KQ[2],'g',['Your bullets have no honour.']);add(KQ[2],'B',['A mountain falls before the Shogun.']);add(KQ[2],'N',['Rest, restless one. The Shogun commands it.']);
+ add(QUIPS[2],'win',['The way of the warrior includes a victory nap.','Honour: restored. Belly: still empty.']);add(QUIPS[2],'lose',['I meant to fall. It is called strategy.','The helmet was blocking my whiskers.']);
+ // ---- Phantom: theatrical, cape, moonlight ----
+ add(KQ[3],'gen',['And for my next trick: you disappear.','Bravo. Bravo, me.','The phantom purrs in the dark.','You were never in the script.','A swish of the cape, and curtains.','The audience demands an encore. You cannot provide one.','Dark, dramatic, done.','Midnight claims another.','Was that you, or the floorboards creaking?','Shh. The show is over.']);
+ add(KQ[3],'d',['Flight cancelled by the phantom.']);add(KQ[3],'m',['Brute force? I prefer brute drama.']);add(KQ[3],'g',['Shoot for the moon, darling. You missed.']);add(KQ[3],'B',['The bigger the set, the grander the collapse.']);add(KQ[3],'N',['Two ghosts walk in. One walks out. Me.']);
+ add(QUIPS[3],'win',['Applause may now commence.','The opera of victory ends on my high note.']);add(QUIPS[3],'lose',['A dramatic loss is still dramatic.','The phantom returns. In the sequel.']);
+ // ---- Litter Lord: smooth-talking velvet showman ----
+ add(KQ[4],'gen',['Strut on through, baby.','Platform heels, platform wins.','The cane says goodnight.','Fur so fresh, robots get stressed.','Make it rain? I make it reign.','Nobody out-dresses the Lord.','That is mink, sugar. You are junk.','Gold chains, clean claws, clear floor.','Clean litter, cleaner style.','You got trimmed AND styled.']);
+ add(KQ[4],'d',['Fly guy, grounded.']);add(KQ[4],'m',['Big muscles, no fashion sense.']);add(KQ[4],'g',['Your gun got no swagger.']);add(KQ[4],'B',['Even a Titan bows to the hat.']);add(KQ[4],'N',['Lich, your robe is SO last century.']);
+ add(QUIPS[4],'win',['Strut. Win. Repeat.','The hat stays. You go.']);add(QUIPS[4],'lose',['Somebody fix the lighting. I look bad losing.','Mink is warm, but this loss is cold.']);
+})();
 
 /* ---------- boot ---------- */
 function boot(){scene.environment=buildEnv();const L=buildLights();const W=buildArena();G.W=W;setupPost();setupFX();
