@@ -3008,7 +3008,7 @@ function showSelect(mode){clearClash();G.mode=mode;syncBinds();G.ui='select';con
  const p2=G.ov.querySelector('#p2j');if(p2)p2.onchange=()=>{G.advP2=p2.checked;showSelect(mode);};
  G.ov.querySelector('#go').onclick=()=>{if(!G.fsOffered&&!FS.el()&&!FS.standalone()){G.fsOffered=true;if(FS.ok())fsEnter();else iosTip(false);}selGo();};G.ov.querySelector('#back').onclick=showMenu;bindSheets();}
 function startMode(){clearClash();syncBinds();G.ov.style.display='none';G.ui=null;clearBubbles();const a=G.sel[0],b=(G.mode==='adv'&&!G.advP2)?G.sel[0]:G.sel[1];
- if(!F.length||F[0].mi!==a||F[1].mi!==b||G.fLod!==(G.mode==='adv'?FLOD.adv:arenaLod()))setFighters(a,b);PLAYER=0;
+ if(!F.length||F[0].mi!==a||F[1].mi!==b||G.fLod!==(G.mode==='adv'?(G.advP2?.62:FLOD.adv):arenaLod()))setFighters(a,b);PLAYER=0;
  document.body.dataset.mode=G.mode;if(G.mode==='adv')advStart(1);else{advExit();restartMatch();}HUD.labels();pause(false);G.snapCam=true;}
 function restartCurrent(){clearBubbles();if(G.mode==='adv')advStart(1);else restartMatch();}
 let capture=null;
@@ -4946,7 +4946,7 @@ const FLOD={k:1,adv:.7};const FL=(n,m)=>FLOD.k===1?n:Math.max(m,Math.round(n*FLO
  cyl=(rt,rb,h,s,o)=>_cy(rt,rb,h,FL(s||12,5),o);torus=(R,r,rs,ts,arc)=>_to(R,r,FL(rs||6,3),FL(ts||16,6),arc);cone=(r,h,s)=>_co(r,h,FL(s||10,4));
  shell=(r,a0,a1,y0,y1,th,sa,sy,opt)=>_sh(r,a0,a1,y0,y1,th,FL(sa||12,4),sy,opt);taperTube=(c,r0,r1,ts,rs)=>_tt(c,r0,r1,FL(ts||12,4),FL(rs||6,4));
  loft=(secs,seg,opt)=>_lo(secs,FL(seg||24,5),opt);rxThree=k=>_rx(k*FLOD.k);
- setFighters=function(a,b){FLOD.k=G.mode==='adv'?FLOD.adv:(typeof arenaLod==='function'?arenaLod():1);try{return _sf(a,b);}finally{G.fLod=FLOD.k;}};}
+ setFighters=function(a,b){FLOD.k=G.mode==='adv'?(G.advP2?.62:FLOD.adv):(typeof arenaLod==='function'?arenaLod():1);try{return _sf(a,b);}finally{G.fLod=FLOD.k;}};}
 
 /* ---- ADVENTURE AUTO-AIM (Brawl Stars style): every attack snaps to the nearest living enemy in range ---- */
 G.autoAim=(()=>{try{return localStorage.getItem('nb_autoaim_v1')!=='0';}catch(e){return true;}})();
@@ -6038,7 +6038,7 @@ window.ITEMS={defs,byId,make,spawn,remove,icon,pickupFX,update,live};
  /* feedback: if the last real frame (renderer.info, all passes) went over, shrink the city allowance; decay back */
  function feedback(){const t=G.stats&&G.stats.tris||0;B.corr=B.corr||0;if(t>192000)B.corr=Math.min(150000,B.corr+(t-192000)*1.0);else if(t<178000)B.corr=Math.max(0,B.corr-1500);}
  function allocate(cx,cz){enemyShadows(cx,cz);feedback();camera.updateMatrixWorld();_pm.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);_fr.setFromProjectionMatrix(_pm);
-  const fixed=fixedCost();let left=B.limit-(G.advP2?6000:0)-fixed-(B.corr||0);const items=[];
+  const fixed=fixedCost();let left=B.limit-(G.advP2?14000:0)-fixed-(B.corr||0);const items=[];
   for(const c of B.chunks){const d=Math.max(0,Math.hypot(c.bs.center.x-cx,c.bs.center.z-cz)-c.bs.radius);_sp.copy(c.bs).applyMatrix4(c.me.matrixWorld);const inF=_fr.intersectsSphere(_sp);
    const cost=(inF?c.t:0)+(c.me.castShadow?c.t:0);items.push({d,cost,on:()=>c.me.visible=true,off:()=>c.me.visible=false});}
   for(const c of B.ichunks){const d=Math.max(0,Math.hypot(c.c.cx-cx,c.c.cz-cz)-c.c.rad);items.push({d,cost:c.t*(c.cs?2:1),on:()=>c.c.im.visible=true,off:()=>c.c.im.visible=false});}
@@ -6050,7 +6050,7 @@ window.ITEMS={defs,byId,make,spawn,remove,icon,pickupFX,update,live};
    c.m.count=k;c.m.instanceMatrix.needsUpdate=true;if(ca&&c.col)c.m.instanceColor.needsUpdate=true;}
   B.fixed=Math.round(fixed);B.est=Math.round(B.limit-left);B.admitted=adm;B.hidden=hid;}
  const _a=advAmbient;
- advAmbient=function(dt){_a(dt);try{const W=ADV.world;if(!W||!CAM||!CAM.target)return;if(B.W!==W)prep(W);B.t+=dt||0;if(!B.ready&&B.t>.6)settle();if(!B.ready)return;allocate(CAM.target.x,CAM.target.z);}catch(e){if(!B.err){B.err=e;console.warn('[budget]',e);}}};})();
+ advAmbient=function(dt){_a(dt);try{const W=ADV.world;if(!W||!CAM||!CAM.target)return;if(B.W!==W)prep(W);B.t+=dt||0;if(!B.ready&&B.t>.6)settle();allocate(CAM.target.x,CAM.target.z);}catch(e){if(!B.err){B.err=e;console.warn('[budget]',e);}}};})();
 
 </script>
 
