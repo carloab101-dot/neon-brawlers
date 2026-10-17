@@ -155,6 +155,10 @@ body:not([data-mode=adv]) #quest,body:not([data-mode=adv]) #mmap,body:not([data-
 .ssh-mv td{padding:3px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}.ssh-mv td small{opacity:.65}.ssh-mv td:nth-child(n+4){white-space:nowrap;font-weight:800}
 .ssh-mv kbd{display:inline-block;min-width:16px;text-align:center;font:900 10px Arial;padding:1px 3px;color:#120818;background:#29e6ff;box-shadow:0 0 8px #29e6ff}.ssh.p0 .ssh-mv kbd{background:#ff8a1e;box-shadow:0 0 8px #ff8a1e}
 @media (max-width:760px){#ov .slot{grid-template-columns:1fr;gap:6px}.ssh{padding:8px 9px}.ssh-h b{font-size:15px}.ssh-mv{font-size:9.5px}.ssh-mv td:nth-child(3){font-size:8.5px;opacity:.85}.ssh-bars .sb{grid-template-columns:56px 1fr 24px;row-gap:0}.ssh-bars small{grid-column:2/4;min-width:0;margin:-1px 0 1px}}
+body[data-mode=adv] #boss{top:calc(max(10px,env(safe-area-inset-top)) + 134px)}
+body:has(.big.warnTop) #quest{visibility:hidden}
+@media (max-width:600px){body[data-mode=adv] #boss{left:8px;transform:none;width:calc(100vw - 132px);top:292px}
+ .big.warnTop{top:206px!important;font-size:30px!important;left:calc(50vw - 62px)!important}.bsub.warnTop{top:244px!important;left:8px!important;right:auto!important;width:calc(100vw - 132px)!important;transform:none!important;font-size:10px!important}}
 </style>
 </head>
 <body data-p="0">
@@ -2092,7 +2096,7 @@ function advStart(st){clearClash();const first=!ADV.on||st===1;ADV.on=true;G.adv
  for(const z of W.zones)for(const p of z.perches)p.used=false;
  const o=questObj(ADV.stage);let sx=START.x,sz=START.z;if(st>1){const v=new V3(-o.x,0,-o.z).normalize();sx=o.x+v.x*13;sz=o.z+v.z*13;}
  for(const f of F){const wk=f.ko,hp0=f.hp;f.reset();f.hp=st>1?(wk?40:hp0):100;f.x=sx+(f.side?1.2:-1.2);f.z=sz+(f.side?.6:0);f.vz=0;f.ang=Math.atan2(o.x-sx,o.z-sz);f.face=1;f.advFace=1;f.root.visible=f.side===0||G.advP2;const tmp={x:f.x,z:f.z};collide(tmp,.42);f.x=tmp.x;f.z=tmp.z;applyPose(f);}
- ADV.yaw=0;ADV.yawTt=0;CAM.dth=0;CAM.dph=0;ADV.quest={i:ADV.stage,state:'go',wave:0,t:0};questPads();
+ ADV.yaw=0;ADV.yawTt=0;ADV.bossFocus=0;CAM.dth=0;CAM.dph=0;ADV.quest={i:ADV.stage,state:'go',wave:0,t:0};questPads();
  if(!ADV.secretPads){ADV.secretPads=true;for(const s of W.secrets){const p=freeSpot(s.x,s.z,1.4,2.6);if(p)spawnPad(p[0],p[1],2);}}
  G.phase='intro';G.phaseT=0;G.timer=99;G.timeScale=1;HUD.big('LEVEL '+st+' / '+STAGES.length,QUESTS[ADV.stage].t+(st>1?' · health carries over':' · follow the gold arrow'),2600);G.snapCam=true;document.body.dataset.mode='adv';HUD.labels();HUD.boss(null);updQuestDom(true);}
 function freeSpot(x,z,r0,r1){for(let t=0;t<40;t++){const a=rnd()*TAU,r=rr(r0,r1),px=x+Math.cos(a)*r,pz=z+Math.sin(a)*r;if(!blocked(px,pz,.6))return [px,pz];}return null;}
@@ -2111,7 +2115,7 @@ function spawnAround(o,list,pairs){const W=ADV.world,zw=W.zones[ADV.stage];const
  return out;}
 function spawnWave(){const q=ADV.quest,S=STAGES[q.i],list=S.waves[q.wave][1],o=questObj(q.i);for(const e of spawnAround(o,list,S.pairs))e.quest=true;q.wave++;
  if(list.includes('B'))bossWarn('B');else if(list.includes('N'))bossWarn('N');else if(q.wave>1)HUD.big('WAVE '+q.wave+' / '+S.waves.length,'they are coming from every side',1300);}
-function bossWarn(type){{const bw=ADV.en.find(e=>e.type===type&&!e.dead),P=advActive();if(bw&&P.length){const mx=P.reduce((a,f)=>a+f.x,0)/P.length,mz=P.reduce((a,f)=>a+f.z,0)/P.length;ADV.yawT=Math.atan2(-(bw.x-mx),-(bw.z-mz))+.6-(CAM.dth||0);ADV.yawTt=2.5;}}const nm=type==='B'?'FOUNDRY TITAN':'THE LITTER LICH';const sub=type==='B'?'Golem titan · slams, rush charge, scrap throws · enrages below 40%':'Necromancer · summons undead behind you · homing orbs · staff beam';
+function bossWarn(type){{const bw=ADV.en.find(e=>e.type===type&&!e.dead),P=advActive();if(bw&&P.length){const mx=P.reduce((a,f)=>a+f.x,0)/P.length,mz=P.reduce((a,f)=>a+f.z,0)/P.length;ADV.yawT=Math.atan2(-(bw.x-mx),-(bw.z-mz))+.6-(CAM.dth||0);ADV.yawTt=2.5;ADV.bossFocus=4.3;}}const nm=type==='B'?'FOUNDRY TITAN':'THE LITTER LICH';const sub=type==='B'?'Golem titan · slams, rush charge, scrap throws · enrages below 40%':'Necromancer · summons undead behind you · homing orbs · staff beam';
  HUD.big('WARNING',nm+' APPROACHES — '+sub,4000);HUD.el.big.classList.add('warnTop');HUD.el.bsub.classList.add('warnTop');const bs=document.querySelector('#boss span');if(bs)bs.textContent=nm;G.bossWarnAt=G.t;}
 /* ---------- hit rules in true 3D ---------- */
 const AOE_FX=['quake','storm','makerain','overdrive','vortex'];
@@ -2225,10 +2229,11 @@ function questDone(){const q=ADV.quest;q.state='done';const o=questObj(q.i);if(r
 /* ---------- camera: third-person orbit around the pair (drag to rotate, pinch/wheel to zoom) ---------- */
 function advCam(dt){const Wn=camWindow();camera.aspect=innerWidth/innerHeight;camera.fov=Wn.portrait?60:46;CAM.yc=(Wn.hi+Wn.lo)/2*.5;
  const AF=advActive(),al=AF.filter(f=>!f.ko),L=al.length?al:AF;const mx=L.reduce((a,f)=>a+f.x,0)/L.length,mz=L.reduce((a,f)=>a+f.z,0)/L.length;let spread=0;for(const f of L)spread=Math.max(spread,Math.hypot(f.x-mx,f.z-mz));
+ if(ADV.bossFocus>0)ADV.bossFocus-=dt;
  if(ADV.yawTt>0){ADV.yawTt-=dt;ADV.yaw=(ADV.yaw||0)+angDiff(ADV.yawT,ADV.yaw||0)*(G.snapCam?1:1-Math.exp(-dt*3));}
  ADV.camYaw=(ADV.yaw||0)+CAM.dth;const th=ADV.camYaw,ph=clamp(.66+CAM.dph,.22,1.3);const fwd=new V3(-Math.sin(th)*Math.cos(ph),-Math.sin(ph),-Math.cos(th)*Math.cos(ph));
- const bo=ADV.en.find(e=>(e.type==='B'||e.type==='N')&&!e.dead);let bx=mx,bz=mz,bd=0;if(bo){bd=Math.hypot(bo.x-mx,bo.z-mz);if(bd<16){bx=lerp(mx,bo.x,.45);bz=lerp(mz,bo.z,.45);}else bd=0;}
- const need=((Wn.portrait?12.5:9.5)+spread*1.1+bd*.35)*CAM.zoom;const tgt=new V3(bx,1.1,bz);if(!CAM.locked){const k=G.snapCam?1:1-Math.exp(-dt*5);CAM.target.lerp(tgt,k);CAM.dist=lerp(CAM.dist||need,need,G.snapCam?1:1-Math.exp(-dt*3));G.snapCam=false;}
+ const bo=ADV.en.find(e=>(e.type==='B'||e.type==='N')&&!e.dead);let bx=mx,bz=mz,bd=0;if(bo){bd=Math.hypot(bo.x-mx,bo.z-mz);if(bd<16){const fk=ADV.bossFocus>0?.92:.58;bx=lerp(mx,bo.x,fk);bz=lerp(mz,bo.z,fk);}else bd=0;}
+ const need=((Wn.portrait?12.5:9.5)+spread*1.1+bd*.35)*CAM.zoom;const tgt=new V3(bx,1.1+(bo&&ADV.bossFocus>0&&bd?(bo.type==='B'?1.6:.6):0),bz);if(!CAM.locked){const k=G.snapCam?1:1-Math.exp(-dt*5);CAM.target.lerp(tgt,k);CAM.dist=lerp(CAM.dist||need,need,G.snapCam?1:1-Math.exp(-dt*3));G.snapCam=false;}
  camera.position.copy(CAM.target).addScaledVector(fwd,-CAM.dist);if(G.shake>0)camera.position.add(new V3(rr(-1,1),rr(-1,1),rr(-1,1)).multiplyScalar(G.shake*.22));camera.lookAt(CAM.target);camera.updateProjectionMatrix();}
 /* ---------- ambient life, zone lighting, occlusion fade, culling, quest arrow, minimap ---------- */
 const _fr=new T.Frustum(),_pm=new T.Matrix4();
