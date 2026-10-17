@@ -1776,7 +1776,7 @@ function boot(){scene.environment=buildEnv();const L=buildLights();const W=build
  MAT_MAKERS=[()=>mechMaterial(det1,atlas1,{ccr:.05,ns:.3,env:1.0}),()=>mechMaterial(det2,atlas2,{ccr:.05,ns:.3,env:1.0})];INPUT=IN[0];
  F=[new Fighter(0,0),new Fighter(1,1)];F[0].K.finalize(matFor(0));F[1].K.finalize(matFor(1));
  for(const f of F)applyPose(f);
- buildHUD();HUD.labels();bindInput();G.baseFog=scene.fog;buildMenus();showMenu();HUD.boss(null);onResize();resetRound();G.snapCam=true;
+ buildHUD();HUD.labels();bindInput();G.baseFog=scene.fog;buildMenus();showMenu();G.ov.style.display='flex';showSelect('vs2');HUD.boss(null);onResize();resetRound();G.snapCam=true;
  G.L=L;let last=performance.now(),frames=0,prT=0,holoT=0,fpsT0=performance.now();
  function holo(){const c=W.holoCanvas,x=c.getContext('2d');x.clearRect(0,0,1024,256);x.fillStyle='rgba(20,200,255,.08)';x.fillRect(0,0,1024,256);x.strokeStyle='rgba(41,230,255,.9)';x.lineWidth=3;x.strokeRect(6,6,1012,244);
   x.font='900 40px "Arial Black",Arial';x.textBaseline='middle';x.fillStyle='#ffb050';x.textAlign='left';x.fillText(F[0].info.name,30,60);x.fillStyle='#8ff4ff';x.textAlign='right';x.fillText(F[1].info.name,994,60);
