@@ -997,11 +997,11 @@ function buildMech5(){SEED=505;
  A(loft([[.05,.255,.185,2.6],[.11,.26,.19,2.6]],32),B.hips,{m:'leather',cat:'belt'});A(box(),B.hips,{p:[0,.08,.2],s:[.12,.08,.02],m:'gold',cat:'belt buckle'});A(cyl(.025,.025,.02,6),B.hips,{p:[0,.08,.212],r:[PI/2,0,0],m:'gem',cat:'belt buckle'});
  /* ROBE: long open-front velvet robe — chest lathe + 2x long skirt panels on hips, fur trim along opening, collar and hem */
  A(loft([[0,.24,.17,2.6],[.15,.33,.21,2.8],[.3,.4,.23,3],[.42,.38,.21,2.8],[.5,.25,.15,2.4]],32),B.chest,{m:'velvet',cat:'robe torso'});
- A(blob(.6,24,18),B.chest,{p:[0,.26,.165],s:[.1,.19,.05],m:'gray',cat:'glossy fur chest'});
- for(let i=0;i<14;i++){const x=(i%7-3)*.02,y=.08+Math.floor(i/7)*.13+(i%2)*.04;A(blob(.6,10,8),B.chest,{p:[x,y+.06,.235-Math.abs(x)*.5],s:[.012,.07,.008],r:[0,0,x*2],m:'fur2',cat:'glossy fur chest'});}
- for(const s of [1,-1]){A(plate([[0,0],[.035,0],[.1,.42],[.06,.44]],.012,.004,4),B.chest,{p:[s*.035,.04,.205],r:[0,s*.45,0],s:[s,1,1],m:'satin',cat:'satin shirt'});
-  A(plate([[0,0],[.11,-.02],[.13,.07],[.02,.05]],.01,.003,4),B.chest,{p:[s*.1,.44,.2],r:[-.5,s*.5,s*-.25],s:[s,1,1],m:'satin',cat:'satin collar'});
-  for(let k=0;k<3;k++)A(sphere(8,6),B.chest,{p:[s*(.05+k*.012),.1+k*.11,.22],s:.008,m:'gold',cat:'shirt buttons',small:true});}
+ A(blob(.6,24,18),B.chest,{p:[0,.25,.205],s:[.1,.18,.05],m:'gray',cat:'glossy fur chest'});
+ for(let i=0;i<14;i++){const x=(i%7-3)*.02,y=.08+Math.floor(i/7)*.13+(i%2)*.04;A(blob(.6,10,8),B.chest,{p:[x,y+.06,.262-Math.abs(x)*.5],s:[.012,.07,.008],r:[0,0,x*2],m:'fur2',cat:'glossy fur chest'});}
+ for(const s of [1,-1]){A(plate([[0,0],[.035,0],[.1,.42],[.06,.44]],.012,.004,4),B.chest,{p:[s*.07,.04,.235],r:[0,s*.45,0],s:[s,1,1],m:'satin',cat:'satin shirt'});
+  A(plate([[0,0],[.11,-.02],[.13,.07],[.02,.05]],.01,.003,4),B.chest,{p:[s*.1,.44,.23],r:[-.5,s*.5,s*-.25],s:[s,1,1],m:'satin',cat:'satin collar'});
+  for(let k=0;k<3;k++)A(sphere(8,6),B.chest,{p:[s*(.075+k*.012),.1+k*.11,.255],s:.008,m:'gold',cat:'shirt buttons',small:true});}
  
  const skirtA=[[.5,2.95],[-2.95,-.5]];for(const [a0,a1] of skirtA)for(let j=0;j<9;j++){const y1=.18-j*.12,y0=y1-.125,R=.27+j*.022;
   A(shell(R,a0,a1,y0,y1,.012,10,1),B.hips,{m:j%4===3?'plum':'velvet',cat:'robe skirt panels'});}
