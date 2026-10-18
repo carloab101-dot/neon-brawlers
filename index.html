@@ -9582,12 +9582,13 @@ console.log('[moves_v_C] registered V×3 + ULT×2 for',Object.entries(MI).map(([
  .vxh .k{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:5px;background:#ff2ea0;color:#fff}.vxh .c.b .k{background:#ffd040;color:#3a0638}
  .vxh .m{width:46px;height:5px;border-radius:3px;background:rgba(255,255,255,.18);overflow:hidden}.vxh .m i{display:block;height:100%;background:linear-gradient(90deg,#ff2ea0,#ffd040)}
  .vxh .c.on{border-color:#ffd040;box-shadow:0 0 10px #ffd04088}.vxh .c.b.on .m i{background:#ffd040}
- #ctl .acts .vxb{display:none}#ctl.vxon .acts .vxb{display:grid}#ctl .acts .vxb.rdy{box-shadow:0 0 14px #ffd040}`;document.head.appendChild(css);
+ #ctl .acts .vxb{display:none}#ctl.vxon .acts .vxb{display:grid}#ctl.vxon .acts{gap:6px}#ctl.vxon .acts .b{flex:1 1 0;min-width:0}#ctl .acts .vxb.rdy{box-shadow:0 0 14px #ffd040}
+ .vxh.col{flex-direction:column;gap:3px}.vxh.col .m{width:34px}`;document.head.appendChild(css);
  const chips=[0,1].map(s=>{const d=document.createElement('div');d.className='vxh';d.innerHTML='<div class="c v"><span class="k">V</span><span class="m"><i></i></span></div><div class="c b"><span class="k">B</span><span class="m"><i></i></span></div>';d.style.display='none';document.body.appendChild(d);return d;});
- let pb=null;function phoneBtns(){if(pb)return;const acts=document.querySelector('#ctl .acts');if(!acts)return;pb=['V','B'].map(sl=>{const b=document.createElement('button');b.type='button';b.className='b mv vxb';b.innerHTML='<b>'+(sl==='V'?'V':'ULT')+'</b>';
+ let pb=null;function phoneBtns(){if(pb)return;const acts=document.querySelector('#ctl .acts');if(!acts)return;pb=['V','B'].map(sl=>{const b=document.createElement('button');b.type='button';b.className='b mv vxb '+(sl==='V'?'v':'u');b.innerHTML='<b>'+(sl==='V'?'V':'ULT')+'</b>';
    b.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();X.use(F[typeof PLAYER!=='undefined'?PLAYER:0],sl);});acts.appendChild(b);return b;});}
  let hT=0;function updHud(force){if(!force&&(hT++%6))return;const on=ADV.on&&G.mode==='adv';phoneBtns();const ctl=document.getElementById('ctl');
-  for(let s=0;s<2;s++){const f=F[s],d=chips[s];const show=on&&f&&(s===0||G.advP2)&&(X.opt(f,'V')||X.opt(f,'B'));d.style.display=show?'flex':'none';if(!show)continue;
+  for(let s=0;s<2;s++){const f=F[s],d=chips[s];const show=on&&f&&(s===0||G.advP2)&&(X.opt(f,'V')||X.opt(f,'B'));d.style.display=show?'flex':'none';if(!show)continue;d.classList.toggle('col',innerWidth<600);
    const fe=document.getElementById('f'+s),pn=fe&&fe.parentNode&&fe.parentNode.parentNode;const xb=pn||document.querySelectorAll('.x2b')[s];if(xb){const r=xb.getBoundingClientRect();d.style.top=(r.bottom+5)+'px';if(s===0){d.style.left=(r.left+8)+'px';d.style.right='';}else{d.style.right=(innerWidth-r.right+8)+'px';d.style.left='';}}
    const sv=st(f),ov=X.opt(f,'V'),ob=X.opt(f,'B');const cv=d.children[0],cb=d.children[1];cv.style.display=ov?'flex':'none';cb.style.display=ob?'flex':'none';
    if(ov){const left=Math.max(0,sv.V-t()),fr=1-left/(ov.cd||6);cv.querySelector('i').style.width=(Math.max(0,Math.min(1,fr))*100).toFixed(0)+'%';cv.classList.toggle('on',left<=0);}
