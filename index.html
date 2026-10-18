@@ -13568,7 +13568,7 @@ const prev=[[],[]];const edge=(p,g,i)=>B(g,i)&&!prev[p][i];
 /* ---------- menu mode ---------- */
 const vis=el=>{if(!el)return false;const r=el.getBoundingClientRect();if(r.width<2||r.height<2)return false;const cs=getComputedStyle(el);return cs.visibility!=='hidden'&&cs.display!=='none'&&+cs.opacity>.05;};
 function overlay(){const q=id=>{const e=document.getElementById(id);return e&&vis(e)?e:null;};
- if(q('sktree'))return 'keys';if(q('w2awk'))return 'keys';if(q('w2board'))return 'keys';if(window.SHOP&&SHOP.open)return 'keys';if(A.ui&&A.ui.open)return 'keys';
+ if(q('sktree'))return 'keys';if(q('w2lo'))return 'keys';if(q('w2awk'))return 'keys';if(q('w2board'))return 'keys';if(window.SHOP&&SHOP.open)return 'keys';if(A.ui&&A.ui.open)return 'keys';
  if(typeof G!=='undefined'&&G.ui==='select')return 'select';if(typeof G!=='undefined'&&['menu','stats','arena','keys'].includes(G.ui))return 'focus';
  if(typeof G!=='undefined'&&G.paused)return 'focus';return null;}
 let focusEl=null,ring=null;
@@ -13582,11 +13582,11 @@ function moveFocus(dx,dy){const L=focusList();if(!L.length){focusEl=null;return;
 let rep={k:null,t:0};
 function dirOf(g){const x=ax(g,0)+(B(g,15)?1:0)-(B(g,14)?1:0),y=ax(g,1)+(B(g,13)?1:0)-(B(g,12)?1:0);if(Math.abs(x)<.5&&Math.abs(y)<.5)return null;return Math.abs(x)>Math.abs(y)?(x>0?'R':'L'):(y>0?'D':'U');}
 function menuStep(mode,g,p,now){const d=dirOf(g);let fire=false;if(d!==rep.k){rep={k:d,t:now+.38};fire=!!d;}else if(d&&now>rep.t){rep.t=now+.13;fire=true;}
- if(mode==='keys'){if(A.skill&&A.skill.open){if(edge(p,g,4))tap('KeyQ');if(edge(p,g,5))tap('KeyE');if(edge(p,g,3))tap('KeyK');if(edge(p,g,2))tap('KeyR');}if(fire)tap({U:'ArrowUp',D:'ArrowDown',L:'ArrowLeft',R:'ArrowRight'}[d]);if(edge(p,g,0))tap('Enter');if(edge(p,g,1)||edge(p,g,9))tap('Escape');}
+ if(mode==='keys'){if(A.spiritsUI&&A.spiritsUI.open){if(edge(p,g,4))tap('KeyQ');if(edge(p,g,5))tap('KeyE');}if(A.skill&&A.skill.open){if(edge(p,g,4))tap('KeyQ');if(edge(p,g,5))tap('KeyE');if(edge(p,g,3))tap('KeyK');if(edge(p,g,2))tap('KeyR');}if(fire)tap({U:'ArrowUp',D:'ArrowDown',L:'ArrowLeft',R:'ArrowRight'}[d]);if(edge(p,g,0))tap('Enter');if(edge(p,g,1)||edge(p,g,9))tap('Escape');}
  else if(mode==='select'){const b=(typeof BINDS!=='undefined'&&BINDS&&BINDS[p])||{};if(fire&&(d==='L'||d==='R'))tap(d==='L'?b.l:b.r);if(edge(p,g,0)||edge(p,g,9))tap('Enter');if(edge(p,g,1))tap('Escape');}
  else{if(fire)moveFocus(d==='L'?-1:d==='R'?1:0,d==='U'?-1:d==='D'?1:0);else if(!focusEl||!vis(focusEl))moveFocus(0,0);showRing();
   if(edge(p,g,0)&&focusEl){focusEl.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));focusEl.dispatchEvent(new PointerEvent('pointerup',{bubbles:true}));focusEl.click();}
-  if(edge(p,g,3)&&typeof G!=='undefined'&&G.ui==='menu'&&A.skill)tap('KeyK');
+  if(edge(p,g,3)&&typeof G!=='undefined'&&G.ui==='menu'&&A.skill)tap('KeyK');if(edge(p,g,2)&&typeof G!=='undefined'&&G.ui==='menu'&&A.spiritsUI)tap('KeyJ');
   if(edge(p,g,1)||edge(p,g,9))tap('Escape');}}
 /* ---------- gameplay ---------- */
 function playStep(p,g,dt){const b=BINDS[p],e=EXTRA[p];if(!b)return;const I=IN[p];if(I){const jx=ax(g,0),jy=ax(g,1);I.jx=jx;I.jy=jy;X[p]=X[p]||{};X[p].stick=!!(jx||jy);}
@@ -13657,39 +13657,51 @@ let SIM=0;const t=()=>SIM;/* own sim clock: advanced by advAmbient dt (G.t can s
 const KEYS=['Z','X','C'];const TYPES=['blade','heavy','staff','gauntlet','thrown','bow'];
 const TYPE_NAME={blade:'BLADE',heavy:'HEAVY',staff:'STAFF / WHIP',gauntlet:'GAUNTLET',thrown:'THROWN',bow:'BOW / FORMS'};
 const wType=mi=>TYPES[mi%TYPES.length];
-/* ---------- node definitions: [name, text, effect] ---------- */
-const famNode=fam=>({RUSH:['Rush armor','0.4 s of armor (i-frames) when the special fires',{ifr:.4}],MELEE:['Stagger','special hits stagger 0.3 s',{stun:.3}],
- SHOT:['Long shot','special range +15%',{rng:.15}],BEAM:['Wide beam','special reach +15%',{rng:.15}],AOE:['Big blast','special radius +15%',{rng:.15}],
- ZONE:['Linger','special hits stagger 0.25 s',{stun:.25}],TRICK:['Vanish','0.6 s of i-frames when the special fires',{ifr:.6}]})[fam]||['Stagger','special hits stagger 0.3 s',{stun:.3}];
-function spiritNodes(fam){return [[['Power','special damage +4%',{dmg:.04}],['Quick','special cooldown −6%',{cd:.06}],['Reach','special range / radius +10%',{rng:.1}]],
- [famNode(fam),['Trait boost','your LV-pick upgrade on this slot hits ×1.5 harder (+3% if none)',{trait:1}],['Bond','this special charges the ULT meter +25%',{ult:.25}]],
- [['Signature mutation','hits leave a bleed wake: 3 ticks × 2 dmg',{bleed:2}],['Element burst · void','each hit drains 3 HP back to you',{drain:3}],['Echo','the special repeats once at 35%',{echo:.35}]]];}
-const STYLE_NODES=[[['Tempo','regular hit chain 6% faster',{tempo:.06}],['Long arm','regular hit reach +0.2 m',{rngAdd:.2}],['Guard break','regular hits stagger 0.2 s',{stun:.2}]],
- [['Cancel','a special used right after a regular hit gets −0.4 s cooldown',{cancel:.4}],['Counter jab','after you guard a hit, regular hits deal +50% for 1 s',{counter:.5}],['Streak','regular hits count ×1.25 toward the weapon streak (weapon cooldown −0.15 s per hit)',{streak:.15}]],
- [['Art link','a weapon attack used within 1 s of a regular hit deals +20%',{art:.2}],['Finisher+','the last hit of the chain deals ×1.5 and knocks back ×1.5',{fin:.5}],['Fusion seed','regular hits charge the ULT meter +30% (counts as tier III for Spirit Fusion)',{ult:.3}]]];
-const WEAPON_NODES=[[['Edge','weapon attack +5%',{dmg:.05}],['Rhythm','weapon cooldown −10%',{vcd:.1}],['Recovery','−10% damage taken for 2 s after a weapon attack',{guard:.1}]],
- [['Property+','weapon hits stagger 0.4 s',{stun:.4}],['Rune socket','weapon range +12% (runes slot in with Spirit Fusion)',{rng:.12}],['Shockwave','+1 small hit (30%) after each weapon hit',{echo:.3}]],
- [['Overdrive','every 3rd weapon attack ×1.5',{od:.5}],['Resonance','weapon attacks charge the ULT meter +30%',{ult:.3}],['Spirit-forge echo','weapon hits burn: 3 ticks × 1 dmg',{bleed:1}]]];
-const MASTERY_ROW1={blade:['Faster parries','−25% damage taken while guarding',{blockDr:.25}],heavy:['Ground slam','weapon hits stagger 0.3 s',{stun:.3}],staff:['Pull','weapon hits pull enemies 1 m in',{pull:1}],
- gauntlet:['Block counter','after you guard a hit, weapon attacks +25% for 1 s',{counterW:.25}],thrown:['Pin','weapon hits pin (stagger) 0.4 s',{stun:.4}],bow:['Form break','weapon range +10%',{rng:.1}]};
-const MASTERY_ROW3={blade:['Bleed +1','weapon hits bleed 3 × 2',{bleed:2}],heavy:['Slam stagger','weapon hits knock back ×1.5',{kb:.5}],staff:['Stun pull','weapon hits stagger 0.3 s',{stun:.3}],
- gauntlet:['Thorns','20% of blocked hits deal damage back',{thorns:.2}],thrown:['Double recall','+1 small hit (40%) after each weapon hit',{echo:.4}],bow:['Pierce','weapon range +15%',{rng:.15}]};
-function masteryNodes(ty){return [[MASTERY_ROW1[ty],['Drill','weapon damage +4%',{dmg:.04}],['Footwork','weapon cooldown −5%',{vcd:.05}]],
- [['Armor swing','0.3 s of armor (i-frames) on every weapon swing',{ifr:.3}],['Weight','weapon damage +6%',{dmg:.06}],['Flow','weapon attacks charge the ULT meter +15%',{ult:.15}]],
- [MASTERY_ROW3[ty],['Master edge','weapon damage +8%',{dmg:.08}],['Second wind','each weapon hit heals 2 HP',{drain:2}]]];}
-/* ---------- save data ---------- */
+/* ---------- node definitions: [name, text, effect] — all real since Deploy F2 ---------- */
+const ELEM_TXT={fire:['Element burst · fire','hits burn: 3 ticks × 1 dmg',{bleed:1}],ice:['Element burst · ice','hits slow (freeze) enemies 0.5 s',{stun:.5}],storm:['Element burst · storm','hits chain to 1 more enemy (50%)',{chain:.5}],
+ earth:['Element burst · earth','hits stagger 0.4 s',{stun:.4}],light:['Element burst · light','hits blind (stop) enemies 0.4 s',{stun:.4}],void:['Element burst · void','each hit drains 3 HP back to you',{drain:3}]};
+const INNATE_EL=['fire','storm','ice','earth','light','void'];
+const famNode=fam=>({RUSH:['Rush armor','0.4 s of armor (i-frames) while the special dashes in',{ifr:.4}],MELEE:['Stagger','special hits stagger 0.3 s',{stun:.3}],
+ SHOT:['Pierce +1','the special also hits 1 more enemy behind the first (60%)',{pierce:.6}],BEAM:['Wide beam','beam width / reach +25%',{rng:.25}],AOE:['Big blast','special radius +15%',{rng:.15}],
+ ZONE:['Linger','the zone lasts 1 s longer: a second pulse at 50%',{echo:.5,echoT:1}],TRICK:['Vanish','0.5 s of decoy / invisibility (i-frames) on use',{ifr:.5}]})[fam]||['Stagger','special hits stagger 0.3 s',{stun:.3}];
+const SIGN={RUSH:['Signature · wake','the lunge leaves a bleed wake: 3 ticks × 2 dmg',{bleed:2}],MELEE:['Signature · shatter','hits on staggered enemies deal +25%',{shatter:.25}],SHOT:['Signature · ricochet','shots bounce to 1 more enemy (50%)',{chain:.5}],
+ BEAM:['Signature · overcharge','beam hits stagger 0.3 s and burn 2 × 1',{stun:.3,bleed:1}],AOE:['Signature · implode','blast pulls enemies 1 m in',{pull:1}],ZONE:['Signature · frost field','zone hits slow 0.6 s',{stun:.6}],TRICK:['Signature · ambush','first hit from behind ×1.4',{ambush:.4}]};
+function spiritNodes(fam,el){return [[['Power','special damage +4%',{dmg:.04}],['Quick','special cooldown −6%',{cd:.06}],['Reach','special range / radius +10%',{rng:.1}]],
+ [famNode(fam),['Trait boost','this spirit\u2019s traits ×1.5',{trait:1}],['Bond','this special charges the ULT meter +25%',{ult:.25}]],
+ [SIGN[fam]||SIGN.MELEE,ELEM_TXT[el]||ELEM_TXT.fire,['Echo','the special repeats once at 35%',{echo:.35}]]];}
+const STYLE_NODES=[[['Tempo','chain 6% faster',{tempo:.06}],['Long arm','regular-hit reach +0.2 m',{rngAdd:.2}],['Guard break','the chain\u2019s last hit breaks guard: stagger 0.3 s, ignores boss armour floor',{gbreak:.3}]],
+ [['Cancel','specials can cancel the chain one hit earlier',{cancel:1}],['Counter jab','a perfect guard (≤0.2 s) auto-jabs',{counter:1}],['Streak','every regular hit counts 1.25 toward the weapon\u2019s N',{streak:.25}]],
+ [['Art link','a Weapon Art right after this style\u2019s finisher deals +20% and its recovery freeze is 0.2 s shorter',{art:.2}],['Finisher+','the last hit\u2019s property is doubled',{fin:1}],['Fusion seed','this style plays as tier III (full chain + property)',{seed:1}]]];
+const WEAPON_NODES=wk=>[[['Edge','weapon attack +5%',{dmg:.05}],['Rhythm','N −1 (min 3)',{nMinus:1}],['Recovery','weapon cooldown −8%',{wcd:.08}]],
+ [['Property+','armor / pull / bleed / counter / pin lasts +40%',{prop:.4}],['Rune socket','+1 rune socket (max 2)',{socket:1}],wk==='throw'?['Recall','the throw comes back hitting again (+1 small hit)',{extra:1}]:wk==='form'?['Form Break+','Form Break bonus hit +1 small hit',{extra:1}]:['Shockwave','weapon attacks add a 2.5 m shockwave (+1 small hit)',{extra:1}]],
+ [['Overdrive','every 3rd weapon attack ×1.5',{od:.5}],['Resonance','weapon attacks charge the ULT meter +30%',{ult:.3}],['Spirit-forge echo','the forged spirit\u2019s element on every weapon hit',{forge:1}]]];
+const MAST={blade:[['Faster parries','perfect-guard window +0.06 s',{pgWin:.06}],['Parry → riposte','a perfect guard fires the weapon attack, ignoring its cooldown (once per 12 s)',{riposte:1}],['Deep cuts','bleed lasts +1 tick',{bleedTick:1}]],
+ heavy:[['Ground slam','weapon attacks add a 3 m slam (8 dmg)',{slam:8}],['Iron swing','armor during every weapon swing',{armor:1}],['Slam stagger','the slam staggers 0.5 s',{slamStun:.5}]],
+ staff:[['Long pull','pull +1 m',{pullAdd:1}],['Back sweep','weapon sweeps also hit behind you',{back:1}],['Stun pull','pulled enemies are stunned 0.3 s',{pullStun:.3}]],
+ gauntlet:[['Quick counter','block-counter window +0.05 s',{ctrWin:.05}],['Frost counter','counters freeze 0.3 s',{ctrFreeze:.3}],['Thorns','blocked hits deal 20% back',{thorns:.2}]],
+ thrown:[['Long pin','pin +0.4 s',{pinAdd:.4}],['Double recall','the recall hits twice',{recall2:1}],['Afterimage','dash while the weapon is out: an afterimage hit where you were (8 dmg)',{after:8}]],
+ bow:[['Form timing','Form Break window +0.05 s',{fbWin:.05}],['Piercing shot','shot form pierces 1 more enemy',{pierceShot:1}],['Swift swap','a form swap gives 0.5 s haste (dash ready)',{haste:.5}]]};
+function masteryNodes(ty){const M=MAST[ty]||MAST.heavy;return [[M[0],['Drill','weapon damage +4%',{dmg:.04}],['Footwork','weapon cooldown −5%',{wcd:.05}]],
+ [M[1],['Weight','weapon damage +6%',{dmg:.06}],['Flow','weapon attacks charge the ULT meter +15%',{ult:.15}]],[M[2],['Master edge','weapon damage +8%',{dmg:.08}],['Second wind','each weapon hit heals 2 HP',{drain:2}]]];}
 function SD(){const d=A.save.data;if(!d.skills||typeof d.skills!=='object')d.skills={t:{}};if(!d.skills.t)d.skills.t={};return d.skills;}
 function TR(id){const s=SD();return s.t[id]||(s.t[id]={n:[0,0,0,0,0,0,0,0,0],pts:1,prog:0,spent:0});}
 const W2=()=>(A.save.data&&A.save.data.world)||{};
-const styleId=()=>{const w=W2();return w.equipTech&&w.tech&&w.tech[w.equipTech]?w.equipTech:'street';};
+const isChain=id=>{try{const T=A.world2&&A.world2.TECH;return !!(T&&T[id]&&(T[id][2]==='TECHNIQUE'||id==='iron_sage'));}catch(e){return false;}};
+const styleId=()=>{const w=W2();return w.equipTech&&w.tech&&w.tech[w.equipTech]&&isChain(w.equipTech)?w.equipTech:'street';};
 const techName=id=>{try{if(id==='street')return 'Street Style';const T=A.world2&&A.world2.TECH;return T&&T[id]?T[id][0]:id;}catch(e){return id;}};
-const moveName=(f,k)=>{try{return f.moves[k].name;}catch(e){return 'Special '+KEYS[k];}};
+const moveName=(f,k)=>{try{return (f._inn||f.moves)[k].name;}catch(e){return 'Special '+KEYS[k];}};
+const S_=()=>A.spirits;const WP=()=>A.weapons;
+/* spirit in slot k: captured core (own tree per core) or the innate spirit */
+function slotInfo(f,k){const c=S_()&&S_().slotCore(f,k);if(c){const s=S_().sp(c.sp);return {id:'sp.c.'+c.id,fam:s.fam,el:s.el,name:s.special+' · '+s.name+' '+S_().STARS(c.st),core:c};}
+ const fam=LV.famFor(f.mi,k);return {id:'sp.'+f.mi+'.'+k,fam,el:INNATE_EL[(f.mi+k)%6],name:moveName(f,k)+' · innate spirit'};}
+function wInfo(f){const W=WP();const w=W&&W.cur?W.cur(f):null;if(w)return {id:'wp.'+w.key,ty:w.def.type,wk:w.def.kind||'plain',name:w.def.name,lock:w.locked};return {id:'wp.sig.'+f.mi,ty:wType(f.mi),wk:'plain',name:'Signature gear',lock:null};}
 /* trees for a fighter */
-function trees(f){if(!f)return [];const mi=f.mi,L=[];
- for(let k=0;k<3;k++){const fam=LV.famFor(mi,k);L.push({id:'sp.'+mi+'.'+k,kind:'sp',k,tab:'SPIRIT '+KEYS[k],name:moveName(f,k),sub:'spirit · '+fam+' family · points: this special landing',nodes:spiritNodes(fam)});}
- const sid=styleId();L.push({id:'st.'+sid,kind:'st',tab:'STYLE',name:techName(sid),sub:'fighting technique · regular hits · points: regular hits landing',nodes:STYLE_NODES,tech:sid});
- L.push({id:'wp.'+mi,kind:'wp',tab:'WEAPON',name:((typeof MECH_INFO!=='undefined'&&MECH_INFO[mi])?MECH_INFO[mi].name:'Mech')+' arms',sub:'weapon · streak attack on V (LV 8) · points: weapon attacks landing',nodes:WEAPON_NODES});
- const ty=wType(mi);L.push({id:'wm.'+ty,kind:'wm',tab:'MASTERY',name:TYPE_NAME[ty]+' mastery',sub:'weapon-type mastery · shared by every '+TYPE_NAME[ty].toLowerCase()+' fighter · points: weapon attacks',nodes:masteryNodes(ty)});return L;}
+const NODE_CACHE={};const nodesFor=(kind,a,b)=>{const k=kind+':'+a+':'+(b||'');return NODE_CACHE[k]||(NODE_CACHE[k]=kind==='sp'?spiritNodes(a,b):kind==='wp'?WEAPON_NODES(a):masteryNodes(a));};
+function trees(f){if(!f)return [];const L=[];
+ for(let k=0;k<3;k++){const s=slotInfo(f,k);L.push({id:s.id,kind:'sp',k,tab:'SPIRIT '+KEYS[k],name:s.name,sub:'spirit · '+s.fam+' family · '+s.el+' · points: this special landing',nodes:nodesFor('sp',s.fam,s.el)});}
+ const sid=styleId();L.push({id:'st.'+sid,kind:'st',tab:'STYLE',name:techName(sid),sub:'fighting technique · your regular-hit chain · points: regular hits landing',nodes:STYLE_NODES,tech:sid});
+ const w=wInfo(f);L.push({id:w.id,kind:'wp',tab:'WEAPON',name:w.name,sub:'weapon · fires by itself after N regular hits in a row'+(w.lock?' · '+w.lock:'')+' · points: weapon hits landing',nodes:nodesFor('wp',w.wk)});
+ L.push({id:'wm.'+w.ty,kind:'wm',tab:'MASTERY',name:TYPE_NAME[w.ty]+' mastery',sub:'weapon-type mastery · shared by every '+TYPE_NAME[w.ty].toLowerCase()+' weapon · points: weapon hits landing',nodes:nodesFor('wm',w.ty)});return L;}
 /* row 3 gate = a shrine meditation breakthrough (style tree: on that technique; other trees: any breakthrough) */
 function anyBreak(){const w=W2();for(const id in (w.tech||{}))if(w.tech[id]&&(w.tech[id].adv||w.tech[id].bt))return true;return false;}
 function row3Open(tree){const w=W2();if(tree.kind==='st'&&tree.tech!=='street')return !!(w.tech&&w.tech[tree.tech]&&(w.tech[tree.tech].adv||w.tech[tree.tech].bt));return anyBreak();}
@@ -13699,56 +13711,60 @@ function learn(tree,i){if(!canLearn(tree,i))return false;const d=TR(tree.id);d.n
 /* effect lookup: sum of every learned node's numbers in a tree */
 const EFC={};function eff(id,nodes){const d=SD().t[id];if(!d)return null;const key=id+':'+d.n.join('');if(EFC[id]&&EFC[id].k===key)return EFC[id].e;const e={};
  d.n.forEach((on,i)=>{if(!on)return;const fx=nodes[(i/3)|0][i%3][2];for(const k in fx)e[k]=(e[k]||0)+fx[k];});EFC[id]={k:key,e};return e;}
-const SPN={};function effSp(f,k){const id='sp.'+f.mi+'.'+k;if(!SPN[id])SPN[id]=spiritNodes(LV.famFor(f.mi,k));return eff(id,SPN[id]);}
-const effSt=()=>{const id='st.'+styleId();return eff(id,STYLE_NODES);};
-const effWp=f=>eff('wp.'+f.mi,WEAPON_NODES);const MN={};const effWm=f=>{const ty=wType(f.mi);return eff('wm.'+ty,MN[ty]||(MN[ty]=masteryNodes(ty)));};
+function effSp(f,k){const s=slotInfo(f,k);return eff(s.id,nodesFor('sp',s.fam,s.el));}
+const effSt=()=>eff('st.'+styleId(),STYLE_NODES);
+const effWp=f=>{const w=wInfo(f);return eff(w.id,nodesFor('wp',w.wk));};const effWm=f=>{const w=wInfo(f);return eff('wm.'+w.ty,nodesFor('wm',w.ty));};
 function addE(a,b){if(!b)return a;for(const k in b)a[k]=(a[k]||0)+b[k];return a;}
-/* what is this fighter doing right now */
-function kindOf(f){const a=f&&f.act;if(!a||!a.def)return null;const k=f.moves?f.moves.indexOf(a.def):-1;if(k>=0)return {kind:'sp',k};
- try{if(A.vx&&A.vx.opt(f,'V')===a.def)return {kind:'wp'};if(A.vx&&A.vx.opt(f,'B')===a.def)return {kind:'ult'};}catch(e){}return {kind:'jab'};}
-function effNow(f){const c=kindOf(f);if(!c)return null;let e={};if(c.kind==='sp')e=addE(e,effSp(f,c.k));else if(c.kind==='wp')e=addE(addE(e,effWp(f)),effWm(f));else if(c.kind==='jab')e=addE(e,effSt());else return null;return {c,e};}
-const SKX=f=>f._sk||(f._sk={jabT:-9,blockT:-9,wpN:0,wpT:-9,odOn:false});
+const wfx=f=>addE(addE({},effWp(f)),effWm(f));
+function traitBoost(f){const o={};for(let k=0;k<3;k++){const c=S_()&&S_().slotCore(f,k);if(!c)continue;const e=effSp(f,k);if(e&&e.trait)for(const tr of c.tr||[])o[tr]=(o[tr]||0)+1;}return o;}
+/* what is this fighter doing right now (weapons / arts set f._skKind while they deal damage) */
+function kindOf(f){if(f&&f._skKind)return f._skKind;const a=f&&f.act;if(!a||!a.def)return null;if(a.def._wp)return {kind:'wp',art:!!a.def._art};const k=f.moves?f.moves.indexOf(a.def):-1;if(k>=0&&k<3)return {kind:'sp',k};
+ try{if(A.vx&&(A.vx.opt(f,'V')===a.def||A.vx.opt(f,'B')===a.def))return {kind:'v'};}catch(e){}if(a.def.jab||a.def._tech||a.def.name==='Jab'||(typeof JAB!=='undefined'&&(a.def===JAB||Object.values(JABS||{}).includes(a.def))))return {kind:'jab'};return null;}
+function effNow(f){const c=kindOf(f);if(!c)return null;let e={};if(c.kind==='sp')e=addE(e,effSp(f,c.k));else if(c.kind==='wp')e=wfx(f);else if(c.kind==='jab')e=addE(e,effSt());else return null;return {c,e};}
+const SKX=f=>f._sk||(f._sk={jabT:-9,blockT:-9,guardT:-9,wpN:0,wpT:-9,finT:-9});
 /* ---------- combat hooks ---------- */
 const _dm=A.dmgMul;A.dmgMul=function(f){let m=_dm(f);if(!isAdv()||!f)return m;const x=effNow(f);if(!x)return m;const e=x.e,s=SKX(f);
- if(e.dmg)m*=1+e.dmg;
- if(x.c.kind==='sp'&&e.trait){try{const id=LV.rec(f.mi).picks[LV.SLOT_LV[x.c.k]];const md=id&&LV.FX[id.split('.')[1]];m*=md&&md.dm>1?1+(md.dm-1)*.5:1.03;}catch(err){}}
- if(x.c.kind==='jab'){if(e.counter&&t()-s.blockT<1)m*=1+e.counter;if(e.fin&&f.act&&f.act.def&&f.act.def.hits&&f._skLastHit)m*=1+e.fin;}
- if(x.c.kind==='wp'){if(e.art&&t()-s.jabT<1)m*=1+e.art;const st=effSt();if(st&&st.art&&t()-s.wpStartJab<1)m*=1+st.art;if(e.counterW&&t()-s.blockT<1)m*=1+e.counterW;if(e.od&&s.odOn)m*=1+e.od;}
- return m;};
-const _om=A.onMove;A.onMove=function(f,i){const r=_om.apply(this,arguments);if(!isAdv()||!f||i<0||i>2)return r;const e=effSp(f,i)||{},s=SKX(f);
- if(e.cd)f.cd[i]*=1-e.cd;const st=effSt();if(st&&st.cancel&&t()-s.jabT<.6)f.cd[i]=Math.max(0,f.cd[i]-st.cancel);if(e.ifr)f.iframe=Math.max(f.iframe||0,e.ifr);return r;};
-if(A.vx&&A.vx.use){const _vu=A.vx.use;A.vx.use=function(f,slot){const r=_vu.apply(this,arguments);if(r&&slot==='V'&&isAdv()&&f){const e=addE(addE({},effWp(f)),effWm(f)),s=SKX(f);
- if(e.vcd&&f._vx)f._vx.V=t()+(f._vx.V-t())*(1-e.vcd);if(e.ifr)f.iframe=Math.max(f.iframe||0,e.ifr);s.wpN++;s.odOn=!!(e.od&&s.wpN%3===0);s.wpT=t();s.wpStartJab=s.jabT;}return r;};}
+ if(e.dmg)m*=1+e.dmg;if(x.c.kind==='sp'&&f._skTgt){const q=f._skTgt;if(e.shatter&&q.stun>0)m*=1+e.shatter;if(e.ambush&&!q._amb){const dx=f.x-q.x,dz=f.z-q.z;const fa=Math.sin(q.ang||0)*dx+Math.cos(q.ang||0)*dz;if(fa<0){m*=1+e.ambush;q._amb=1;}}}
+ if(x.c.kind==='wp'&&x.c.art){const st=effSt();if(st&&st.art&&t()-s.finT<1.2)m*=1+st.art;}return m;};
+const _om=A.onMove;A.onMove=function(f,i){const r=_om.apply(this,arguments);if(!isAdv()||!f||i<0||i>2)return r;const e=effSp(f,i)||{};if(e.cd)f.cd[i]*=1-e.cd;if(e.ifr)f.iframe=Math.max(f.iframe||0,e.ifr);return r;};
+/* Cancel: specials may cancel the chain from its first frame */
+if(typeof canCancel==='function'){const _cc=canCancel;canCancel=function(f,i){const r=_cc.apply(this,arguments);if(r||!isAdv()||!f||i<0)return r;const a=f.act;if(a&&a.def&&(a.def.jab||a.def._tech||a.def===JAB)){const st=effSt();if(st&&st.cancel)return true;}return r;};}
 const BL=[];/* bleed / echo queue: {e,f,d,t,n,gap} — never lethal on its own (leaves 1 HP), never on boss proxies */
 const safeE=e=>e&&!e.dead&&!e.boss2&&e.type!=='B'&&e.type!=='N';
 function tickQ(){for(let i=BL.length-1;i>=0;i--){const q=BL[i];if(t()<q.t)continue;const e=q.e;if(!safeE(e)||!isAdv()){BL.splice(i,1);continue;}
   const d=Math.max(1,Math.round(q.d));const nh=Math.max(1,e.hp-d);const dealt=e.hp-nh;e.hp=nh;e.aggro=1;if(ST[q.f.side])ST[q.f.side].dmg+=dealt;try{popDmg(e.chest(),dealt,false);}catch(err){}
   if(--q.n<=0)BL.splice(i,1);else q.t=t()+q.gap;}}
+/* per-hit effects shared by specials, regular hits and weapons: stun, pull, bleed, echo, chain/pierce, drain, ULT */
+function onLanded(f,e,list,kind){let dealtSum=0,landed=0;const bt=(wfx(f).bleedTick||0);
+ for(const [q,dd] of list){landed++;dealtSum+=dd;const boss=!safeE(q)&&!q.dead;
+  if(e.stun&&!q.dead&&!boss)q.stun=Math.max(q.stun||0,e.stun);
+  if(e.pull&&!q.dead&&!boss){const dx=f.x-q.x,dz=f.z-q.z,d=Math.hypot(dx,dz)||1;const k=Math.min(e.pull,Math.max(0,d-1.2))/d;q.x+=dx*k;q.z+=dz*k;}
+  if(e.bleed&&safeE(q))BL.push({e:q,f,d:e.bleed,t:t()+.5,n:3+(kind==='wp'?bt:0),gap:.5});
+  if(e.echo&&safeE(q))BL.push({e:q,f,d:dd*e.echo,t:t()+(e.echoT||.45),n:1,gap:0});
+  const ch=e.chain||e.pierce;if(ch&&!q._chainT){const o=ADV.en.filter(z=>safeE(z)&&z!==q&&Math.hypot(z.x-q.x,z.z-q.z)<3.2).sort((a,b)=>Math.hypot(a.x-q.x,a.z-q.z)-Math.hypot(b.x-q.x,b.z-q.z))[0];if(o)BL.push({e:o,f,d:dd*ch,t:t()+.15,n:1,gap:0});}}
+ if(landed){if(e.drain&&!(typeof perkNoHeal==='function'&&perkNoHeal(f)))f.hp=Math.min(f.hpMax,f.hp+e.drain);if(e.ult&&f._vx&&A.vx)f._vx.ult=Math.min(A.vx.meterMax(f),(f._vx.ult||0)+dealtSum*e.ult);}
+ return landed;}
 if(typeof advHit==='function'){const _ah=advHit;advHit=function(f,h){if(!isAdv()||!f||f.mi==null||!h)return _ah.apply(this,arguments);const x=effNow(f);
   if(!x)return _ah.apply(this,arguments);const e=x.e,s=SKX(f);let h2=h;
-  if(e.rng||e.rngAdd||e.kb||e.fin){h2=Object.assign({},h);if(e.rng)h2.range=h.range*(1+e.rng);if(e.rngAdd)h2.range=h2.range+e.rngAdd;if(e.kb&&h.kb)h2.kb=h.kb*(1+e.kb);}
-  if(x.c.kind==='jab'){const hs=f.act&&f.act.def&&f.act.def.hits;f._skLastHit=!!(hs&&hs.length>1&&h===hs[hs.length-1]);if(e.fin&&f._skLastHit&&h.kb)h2=Object.assign({},h2,{kb:(h2.kb||h.kb)*(1+e.fin)});}
+  if(e.rng||e.rngAdd){h2=Object.assign({},h);if(e.rng)h2.range=h.range*(1+e.rng);if(e.rngAdd)h2.range=h2.range+e.rngAdd;}
   const before=new Map();for(const q of ADV.en)if(!q.dead)before.set(q,q.hp);
-  const r=_ah.call(this,f,h2);f._skLastHit=false;let landed=0,dealtSum=0;
-  for(const [q,hp] of before){const dd=hp-q.hp;if(!(dd>0))continue;landed++;dealtSum+=dd;
-   if(e.stun&&!q.dead&&q.type!=='B'&&q.type!=='N')q.stun=Math.max(q.stun||0,e.stun);
-   if(e.pull&&!q.dead&&q.type!=='B'&&q.type!=='N'){const dx=f.x-q.x,dz=f.z-q.z,d=Math.hypot(dx,dz)||1;const k=Math.min(e.pull,Math.max(0,d-1.2))/d;q.x+=dx*k;q.z+=dz*k;}
-   if(e.bleed&&safeE(q))BL.push({e:q,f,d:e.bleed,t:t()+.5,n:3,gap:.5});
-   if(e.echo&&safeE(q))BL.push({e:q,f,d:dd*e.echo,t:t()+.45,n:1,gap:0});}
-  if(landed){if(e.drain&&!(typeof perkNoHeal==='function'&&perkNoHeal(f))){f.hp=Math.min(f.hpMax,f.hp+e.drain);}
-   if(e.ult&&f._vx&&A.vx){f._vx.ult=Math.min(A.vx.meterMax(f),(f._vx.ult||0)+dealtSum*e.ult);}
-   if(x.c.kind==='jab'){s.jabT=t();if(e.streak&&f._vx&&f._vx.V>t())f._vx.V=Math.max(t(),f._vx.V-e.streak*landed);}
-   gainPts(f,x.c,landed);}
+  let near=null,nd=9;for(const q of before.keys()){const d=Math.hypot(q.x-f.x,q.z-f.z);if(d<nd){nd=d;near=q;}}f._skTgt=near;
+  const r=_ah.call(this,f,h2);f._skTgt=null;const list=[];for(const [q,hp] of before){const dd=hp-q.hp;if(dd>0)list.push([q,dd]);}
+  if(list.length){onLanded(f,e,list,x.c.kind);if(x.c.kind==='jab')s.jabT=t();gainPts(f,x.c,list.length);}
   return r;};}
-/* damage taken: Recovery (after weapon attack), Faster parries (guarding), Thorns; remember guarded hits for Counter jab */
-const _hm=A.hurtMul;A.hurtMul=function(f){let m=_hm(f);if(!isAdv()||!f)return m;const s=SKX(f);const w=addE(addE({},effWp(f)),effWm(f));
- if(w.guard&&t()-s.wpT<2)m*=1-w.guard;if(f.block){s.blockT=t();if(w.blockDr)m*=1-w.blockDr;}return m;};
-if(typeof advHurt==='function'){const _hu=advHurt;advHurt=function(f,dmg,e){const r=_hu.apply(this,arguments);try{if(isAdv()&&f&&f.block&&e&&safeE(e)){const w=addE(addE({},effWp(f)),effWm(f));if(w.thorns){const d=Math.max(1,Math.round(dmg*w.thorns));e.hp=Math.max(1,e.hp-d);}}}catch(err){}return r;};}
+/* perfect guard: guard pressed ≤0.2 s (+mastery) before a hit → Counter jab (style) and riposte (blade mastery) */
+addEventListener('keydown',e=>{if(e.repeat||!isAdv()||typeof BINDS==='undefined')return;for(let p=0;p<2;p++)if(BINDS[p]&&e.code===BINDS[p].block){const f=F[p];if(f)SKX(f).guardT=t();}},true);
+const PG=f=>.2+(wfx(f).pgWin||0);A.skillPerfect=f=>f&&f.block&&t()-SKX(f).guardT<=PG(f);
+if(typeof advHurt==='function'){const _hu=advHurt;advHurt=function(f,dmg,en){const perf=isAdv()&&f&&f.block&&!f.act&&t()-SKX(f).guardT<=PG(f);const r=_hu.apply(this,arguments);
+  try{if(perf){const st=effSt();if(st&&st.counter){f.block=false;doMove(f,-1,true);}const w=wfx(f);if(w.riposte&&WP()&&(!SKX(f).ripT||t()-SKX(f).ripT>12)){SKX(f).ripT=t();WP().fire(f,true);}}
+   if(isAdv()&&f&&f.block&&en&&safeE(en)){const w=wfx(f);if(w.thorns){const d=Math.max(1,Math.round(dmg*w.thorns));en.hp=Math.max(1,en.hp-d);try{popDmg(en.chest(),d,false);}catch(er){}}}}catch(err){}return r;};}
 /* points from use */
 const NEED={sp:8,st:30,wp:4,wm:6};
 function gainPts(f,c,n){const add=(id,need)=>{const d=TR(id);d.prog+=n;while(d.prog>=need){d.prog-=need;d.pts++;A.save.dirty('skillpt');if(f.side===0||G.advP2)try{A.toast&&A.toast('✦ SKILL POINT',false,treeLabel(id)+' · press K');}catch(e){}}};
- if(c.kind==='sp')add('sp.'+f.mi+'.'+c.k,NEED.sp);else if(c.kind==='jab')add('st.'+styleId(),NEED.st);else if(c.kind==='wp'){add('wp.'+f.mi,NEED.wp);add('wm.'+wType(f.mi),NEED.wm);}}
-function treeLabel(id){const p=id.split('.');if(p[0]==='sp')return 'Spirit '+KEYS[+p[2]];if(p[0]==='st')return 'Style';if(p[0]==='wp')return 'Weapon';return 'Mastery';}
+ if(c.kind==='sp')add(slotInfo(f,c.k).id,NEED.sp);else if(c.kind==='jab')add('st.'+styleId(),NEED.st);else if(c.kind==='wp'){const w=wInfo(f);add(w.id,NEED.wp);add('wm.'+w.ty,NEED.wm);}}
+function treeLabel(id){const p=id.split('.');if(p[0]==='sp')return 'Spirit';if(p[0]==='st')return 'Style';if(p[0]==='wp')return 'Weapon';return 'Mastery';}
+/* move a tree's progress when a fused spirit keeps its species (+2 points) */
+function moveTree(from,to,bonus){const s=SD();const d=s.t[from];const n=TR(to);if(d){n.n=d.n.slice();n.pts=d.pts;n.prog=d.prog;n.spent=d.spent;}n.pts+=bonus||0;A.save.dirty('skillmove');}
 /* tempo: regular-hit chain plays faster (per sim frame) */
 if(typeof advAmbient==='function'){const _aa=advAmbient;advAmbient=function(dt){_aa.apply(this,arguments);SIM+=Math.min(.1,dt||0);try{if(!isAdv())return;tickQ();const st=effSt();if(st&&st.tempo)for(const f of F){if(!f||!f.act)continue;const c=kindOf(f);if(c&&c.kind==='jab')f.act.t+=(dt||0)*st.tempo;}}catch(e){if(!SK.err){SK.err=e;console.warn('[skill]',e);}}};}
 /* ---------- shrine reset ---------- */
@@ -13756,7 +13772,7 @@ function nearShrine(f){if(!f)return false;const pts=[];try{const R=A.world2;if(R
  return pts.some(([x,z])=>Math.hypot(f.x-x,f.z-z)<5);}
 function resetTree(tree){const d=TR(tree.id);let back=0;d.n=d.n.map(v=>{if(v)back++;return 0;});d.pts+=back;d.spent=0;A.save.dirty('skillreset');return back;}
 /* ---------- UI ---------- */
-const SK=A.skill={open:false,trees,TR,canLearn,learn,rowOpen,row3Open,effNow,effSp,effSt,effWp,effWm,nearShrine,resetTree,kindOf};
+const SK=A.skill={open:false,trees,TR,canLearn,learn,rowOpen,row3Open,effNow,effSp,effSt,effWp,effWm,wfx,nearShrine,resetTree,kindOf,traitBoost,moveTree,gain:gainPts,onLanded,styleId,isChain,slotInfo,wInfo,BL,SKX};
 const st=document.createElement('style');st.id='skCss';st.textContent=`
 #sktree{position:fixed;inset:0;z-index:2147482150;display:none;align-items:center;justify-content:center;background:radial-gradient(120% 90% at 50% 10%,rgba(42,16,80,.93),rgba(8,6,24,.96) 50%,rgba(3,4,10,.97));font-family:Bahnschrift,"DIN Alternate","Arial Narrow",Arial,sans-serif;color:#fff}
 #sktree.on{display:flex}#sktree .bx{width:min(980px,96vw);max-height:96vh;overflow:auto;padding:14px 18px 12px;box-sizing:border-box;position:relative}
@@ -13823,6 +13839,491 @@ requestAnimationFrame(tick);
 })();
 
 </script>
+<script>/* adv2_spirits.js */
+/* ---- Neon Brawlers · Deploy F2: SPIRIT FUSION 魂 (SPIRITS.md §2–3) · Adventure only, Versus untouched ----
+   Capture: weakened enemies show a 3.5 m BIND ring for 6 s; hold BIND (F · P2 U · controller D-pad down) inside it while the enemy fights back.
+   Cores → 3 spirit slots (Z LV5 · X LV15 · C LV25, soul-tier ★ cap), each slot's spirit gives that slot's special (rank ×★, normalised to the innate special).
+   Traits (passive, capped), Fusion at kiosks / shrines (8×(★a+★b) coins, secret pairings), Awakening: the strongest spirit bursts out as a chrome beast on B.
+   LOADOUT screen: J · pause menu · HUD button · controller X from the pause menu. */
+(function(){'use strict';const A=window.ADV2;if(!A||!A.lv||!A.save||typeof G==='undefined'||typeof THREE==='undefined')return;const LV=A.lv,T=THREE;
+let SIM=0;A.simT=()=>SIM;const t=()=>SIM;const isAdv=()=>typeof ADV!=='undefined'&&ADV.on&&G.mode==='adv';
+let RS_=0x9e3779b9;const R_=()=>{RS_=(RS_+0x6D2B79F5)|0;let q=Math.imul(RS_^RS_>>>15,1|RS_);q=q+Math.imul(q^q>>>7,61|q)^q;return ((q^q>>>14)>>>0)/4294967296;};/* own stream: never consumes the game's rnd(), so co-op / versus sims stay identical */
+const live=()=>{try{return advActive().filter(f=>f&&!f.ko);}catch(e){return [];}};
+/* ---------- species ---------- */
+const SPC={
+ scrap_pup:['Scrap Pup','犬','MELEE','earth',0xd8a040,'Scrap Bite'],hover_moth:['Hover Moth','蛾','SHOT','storm',0x9a7aff,'Static Wing'],turret_crab:['Turret Crab','蟹','SHOT','earth',0xff7a40,'Claw Battery'],
+ torii_crane:['Torii Crane','鶴','MELEE','light',0xffe6a0,'Gate Wing'],glass_shark:['Glass Shark','鮫','RUSH','ice',0x7af0ff,'Glass Lunge'],sun_scarab:['Sun Scarab','甲','AOE','fire',0xffb020,'Solar Shell'],
+ rime_stag:['Rime Stag','鹿','ZONE','ice',0xb8f0ff,'Antler Frost'],slate_golem:['Slate Golem','岩','AOE','earth',0x9aa0b0,'Slate Quake'],bone_lich:['Bone Lich','骨','TRICK','void',0xc080ff,'Grave Swap'],
+ foundry_titan:['Foundry Titan','鋳','AOE','fire',0xff6020,'Crucible Slam'],ronin_rotor:['Ronin Rotor','輪','RUSH','storm',0xff4fa0,'Rotor Draw'],admiral_angler:['Admiral Angler','錨','SHOT','ice',0x40c0ff,'Anchor Cast'],
+ pharaoh_prism:['Pharaoh Prism','光','BEAM','light',0xfff080,'Prism Ray'],rime_regent:['Rime Regent','氷','ZONE','ice',0xa0e8ff,'Regent Hush'],voidwhisker:['Voidwhisker Spirit','無','TRICK','void',0xb040ff,'Void Blink'],
+ hammerjet:['Hammerjet','鎚','RUSH','storm',0x60d0ff,'Jet Hammer'],ossuary_colossus:['Ossuary Colossus','墓','AOE','void',0xd0b0ff,'Ossuary Crush'],hoarfrost_heron:['Hoarfrost Heron','霜','BEAM','ice',0xe0ffff,'Heron Frost Ray'],
+ mirror_mantis:['Mirror Mantis','鏡','BEAM','light',0xffd0f0,'Mirror Scythe'],neon_leviathan:['Neon Leviathan','龍','AOE','fire',0xff40c0,'Leviathan Surge']};
+const BOSS_SP={ronin_rotor:'ronin_rotor',admiral_angler:'admiral_angler',pharaoh_prism:'pharaoh_prism',rime_regent:'rime_regent',voidwhisker:'voidwhisker'};
+const PAIRS=[['glass_shark','hover_moth','hammerjet'],['slate_golem','bone_lich','ossuary_colossus'],['torii_crane','rime_stag','hoarfrost_heron'],['turret_crab','sun_scarab','mirror_mantis']];
+const RANK={1:.85,2:.92,3:1,4:1.07,5:1.15,6:1.18};const STARS=n=>n>=6?'MYTHIC':'★'.repeat(n);
+const TRAITS={ironhide:['Ironhide','−3% damage taken'],overclock:['Overclock','special cooldowns −4%'],venom:['Venom','special hits poison 2 × 1'],spark:['Spark','specials +3% damage'],
+ frostbite:['Frostbite','special hits stagger 0.2 s longer'],magnet:['Magnet','special hits pull 1 m in'],vampire:['Vampire','special hits heal 1 HP'],tailwind:['Tailwind','dash cooldown −8%']};
+const TKEYS=Object.keys(TRAITS);
+const ELEM_OPP={fire:'ice',ice:'fire',storm:'earth',earth:'storm',light:'void',void:'light'};
+const sp=id=>{const s=SPC[id];return s?{id,name:s[0],kanji:s[1],fam:s[2],el:s[3],col:s[4],special:s[5]}:null;};
+/* ---------- save ---------- */
+function D(){const d=A.save.data;if(!d.spirits||typeof d.spirits!=='object')d.spirits={};const s=d.spirits;if(!Array.isArray(s.cores))s.cores=[];if(!s.seq)s.seq=1;if(!s.boss)s.boss={};if(!s.load)s.load={};if(!s.wins)s.wins={};return s;}
+function LO(mi){const s=D();return s.load[mi]||(s.load[mi]={Z:null,X:null,C:null,weapon:null});}
+const SLOTS=['Z','X','C'],SLOT_LV={Z:5,X:15,C:25};
+const core=id=>D().cores.find(c=>c.id===id)||null;
+function newCore(spId,st,traits,extra){const s=D();const S=sp(spId);let tr=traits;if(!tr){const pool=TKEYS.slice();tr=[];const n=st>=4?3:2;for(let i=0;i<n&&pool.length;i++)tr.push(pool.splice((R_()*pool.length)|0,1)[0]);}
+ const c=Object.assign({id:'c'+(s.seq++),sp:spId,st,tr,el:S.el,fam:S.fam,at:Date.now()},extra||{});s.cores.push(c);A.save.dirty('core');return c;}
+/* soul force + tier (SPIRITS §2) */
+const SF=f=>{try{return A.world2&&A.world2.soulForce?A.world2.soulForce(f):10+3*((LV.rec(f.mi).lv||1)-1);}catch(e){return 10;}};
+const tierOf=sf=>sf>=85?5:sf>=65?4:sf>=45?3:sf>=25?2:1;const STAR_CAP={1:0,2:3,3:4,4:5,5:6};
+function canEquip(f,slot,c){const lv=LV.rec(f.mi).lv||1;if(lv<SLOT_LV[slot])return 'Slot '+slot+' opens at LV '+SLOT_LV[slot];if(!c)return null;const cap=STAR_CAP[tierOf(SF(f))];
+ if(c.st>cap)return cap?'Soul tier '+['','I','II','III','IV','V'][tierOf(SF(f))]+' can equip up to '+(cap>=6?'Mythic':cap+'★'):'Captured spirits need soul tier II (soul force 25, about LV 6)';return null;}
+function holder(cid){const s=D();for(const mi in s.load)for(const k of SLOTS)if(s.load[mi][k]===cid)return [+mi,k];return null;}
+function equip(f,slot,cid){const c=cid?core(cid):null;const why=canEquip(f,slot,c);if(why)return why;if(cid){const h=holder(cid);if(h)LO(h[0])[h[1]]=null;}LO(f.mi)[slot]=cid||null;A.save.dirty('equip');applyAll();return null;}
+/* ---------- spirit specials: donor move of the species' family, normalised to the innate special's damage per cooldown, × rank ---------- */
+const DONOR={};function donor(fam,spId){const key=fam+':'+spId;if(DONOR[key])return DONOR[key];const L=[];try{for(let mi=0;mi<MOVES.length;mi++)for(let k=0;k<3;k++)if(LV.famFor(mi,k)===fam)L.push(MOVES[mi][k]);}catch(e){}
+ if(!L.length)for(let mi=0;mi<MOVES.length;mi++)L.push(MOVES[mi][0]);let h=0;for(const ch of spId)h=(h*31+ch.charCodeAt(0))>>>0;return DONOR[key]=L[h%L.length];}
+const dps=m=>m.hits.reduce((a,h)=>a+h.dmg,0)/Math.max(.5,m.cd||1);
+const MOVE_CACHE={};function spiritMove(c,inn){const key=c.id+':'+inn.name;if(MOVE_CACHE[key])return MOVE_CACHE[key];const S=sp(c.sp),dn=donor(S.fam,c.sp);const norm=dps(inn)/Math.max(.1,dps(dn));
+ const m=Object.assign({},dn,{name:S.special,hits:dn.hits.map(h=>Object.assign({},h,{dmg:Math.max(1,Math.round(h.dmg*norm))})),_core:c.id,_sp:c.sp,col:S.col});return MOVE_CACHE[key]=m;}
+function applyF(f){if(!f||f.mi==null||!f.moves)return;if(!f._inn||f._innMi!==f.mi){f._inn=f.moves.slice(0,3);f._innMi=f.mi;}
+ const lo=isAdv()?LO(f.mi):null;for(let k=0;k<3;k++){const cid=lo&&lo[SLOTS[k]],c=cid&&core(cid);f.moves[k]=c&&!canEquip(f,SLOTS[k],c)?spiritMove(c,f._inn[k]):f._inn[k];}}
+function applyAll(){try{for(const f of F)applyF(f);if(typeof HUD!=='undefined'&&HUD.labels)HUD.labels();}catch(e){console.warn('[spirits]',e);}}
+const slotCore=(f,k)=>{if(!f||!isAdv())return null;const cid=LO(f.mi)[SLOTS[k]];const c=cid&&core(cid);return c&&!canEquip(f,SLOTS[k],c)?c:null;};
+const equipped=f=>[0,1,2].map(k=>slotCore(f,k)).filter(Boolean);
+/* traits of all equipped spirits (caps: dmg-equivalent ≤ +10%, DEF-like ≤ 6%) */
+function traits(f){const o={};for(const c of equipped(f))for(const tr of c.tr||[])o[tr]=(o[tr]||0)+1;const bst=A.skill&&A.skill.traitBoost?A.skill.traitBoost(f):{};
+ const v=(k,per,cap)=>Math.min(cap,(o[k]||0)*per*(1+.5*(bst[k]||0)));
+ return {dr:v('ironhide',.03,.06),cd:v('overclock',.04,.1),venom:v('venom',1,3),dmg:v('spark',.03,.1),stun:v('frostbite',.2,.5),pull:v('magnet',1,2),vamp:v('vampire',1,3),dash:v('tailwind',.08,.2)};}
+A.spirits={SPC,sp,D,LO,core,newCore,equip,canEquip,holder,slotCore,equipped,traits,applyAll,spiritMove,RANK,STARS,SF,tierOf,TRAITS,PAIRS,ELEM_OPP,SLOTS,SLOT_LV};
+/* ---------- combat hooks: rank, traits ---------- */
+const curSlot=f=>{const a=f&&f.act;if(!a||!a.def||!f.moves)return -1;return f.moves.indexOf(a.def);};
+const _dm=A.dmgMul;A.dmgMul=function(f){let m=_dm(f);if(!isAdv()||!f)return m;const k=curSlot(f);if(k<0||k>2)return m;const c=slotCore(f,k);if(c)m*=RANK[Math.min(6,c.st)]||1;const tr=traits(f);if(tr.dmg)m*=1+tr.dmg;return m;};
+const _om=A.onMove;A.onMove=function(f,i){const r=_om.apply(this,arguments);if(isAdv()&&f&&i>=0&&i<3){const tr=traits(f);if(tr.cd)f.cd[i]*=1-tr.cd;}return r;};
+const _hm=A.hurtMul;A.hurtMul=function(f){let m=_hm(f);if(isAdv()&&f){const tr=traits(f);if(tr.dr)m*=1-tr.dr;}return m;};
+if(typeof tryDash==='function'){const _td=tryDash;tryDash=function(f){const r=_td.apply(this,arguments);if(r&&f&&isAdv()){const tr=traits(f);if(tr.dash)f.dashCd*=1-tr.dash;}return r;};}
+const TQ=[];/* poison ticks */
+if(typeof advHit==='function'){const _ah=advHit;advHit=function(f,h){if(!isAdv()||!f)return _ah.apply(this,arguments);const k=curSlot(f);if(k<0||k>2)return _ah.apply(this,arguments);
+ const before=new Map();for(const q of ADV.en)if(!q.dead)before.set(q,q.hp);const r=_ah.apply(this,arguments);const tr=traits(f);let any=0;
+ for(const [q,hp] of before){if(!(hp-q.hp>0))continue;any++;const boss=q.boss2||q.type==='B'||q.type==='N';if(tr.stun&&!q.dead&&!boss)q.stun=Math.max(q.stun||0,.35+tr.stun);
+  if(tr.pull&&!q.dead&&!boss){const dx=f.x-q.x,dz=f.z-q.z,d=Math.hypot(dx,dz)||1,kk=Math.min(tr.pull,Math.max(0,d-1.2))/d;q.x+=dx*kk;q.z+=dz*kk;}
+  if(tr.venom&&!q.dead&&!boss)TQ.push({e:q,f,d:tr.venom,t:t()+.5,n:2});}
+ if(any&&tr.vamp&&(!f._vampT||t()-f._vampT>.3)){f._vampT=t();f.hp=Math.min(f.hpMax,f.hp+tr.vamp);}return r;};}
+function tickQ(){for(let i=TQ.length-1;i>=0;i--){const q=TQ[i];if(t()<q.t)continue;const e=q.e;if(!e||e.dead){TQ.splice(i,1);continue;}const d=Math.min(q.d,Math.max(0,e.hp-1));if(d>0){e.hp-=d;try{popDmg(e.chest(),d,false);}catch(er){}}if(--q.n<=0)TQ.splice(i,1);else q.t=t()+.5;}}
+/* ---------- capture (BIND) ---------- */
+const BIND_KEY=['KeyF','KeyU'];const held=[0,0];
+addEventListener('keydown',e=>{const p=BIND_KEY.indexOf(e.code);if(p>=0&&isAdv()&&(p===0||G.advP2))held[p]=1;},true);
+addEventListener('keyup',e=>{const p=BIND_KEY.indexOf(e.code);if(p>=0)held[p]=0;},true);addEventListener('blur',()=>{held[0]=held[1]=0;});
+function regionSpecies(e){const rid=A.world2&&A.world2.on?A.world2.id:null;if(e.type==='B')return 'foundry_titan';if(e.type==='N')return 'bone_lich';if(e.elite)return 'slate_golem';
+ if(e.type==='d')return 'hover_moth';if(e.type==='g')return 'turret_crab';return ({sakura:'torii_crane',bay:'glass_shark',dunes:'sun_scarab',aurora:'rime_stag',spire:'bone_lich'})[rid]||'scrap_pup';}
+function bindInfo(e){if(e.boss2||e.undead||e.bossAdd)return null;const fr=e.hp/Math.max(1,e.max||e.hp);const B=e.type==='B',N=e.type==='N';
+ const thr=B?.1:N?.15:e.elite?.2:.25;if(fr>thr||e.hp<=0)return null;if(B&&D().boss.foundry_titan)return null;
+ const st=B?5:N?4:e.elite?(R_()<.5?3:4):e.type==='g'?2:(R_()<.1?2:1);const base=B?6:N?4.5:e.elite?3.5:e.type==='g'?2.2:1.5;return {st,base,sp:regionSpecies(e)};}
+const BD={};/* per enemy bind state in e._bd */
+let rings=[];function ringMesh(){const g=new T.Group();const m1=new T.Mesh(new T.TorusGeometry(3.5,.05,6,64),new T.MeshBasicMaterial({color:0xff2ea0,transparent:true,opacity:.85,depthWrite:false}));m1.rotation.x=Math.PI/2;
+ const m2=new T.Mesh(new T.TorusGeometry(3.5,.11,6,64,0.001),new T.MeshBasicMaterial({color:0x29e6ff,transparent:true,opacity:.95,depthWrite:false}));m2.rotation.x=Math.PI/2;g.add(m1,m2);g.userData={m1,m2,arc:-1};g.visible=false;scene.add(g);return g;}
+let lab=null;function label(){if(lab)return lab;lab=document.createElement('div');lab.id='w2bind';lab.style.cssText='position:fixed;z-index:14;display:none;transform:translate(-50%,-100%);pointer-events:none;padding:5px 10px;border-radius:10px;background:rgba(14,10,30,.88);border:1px solid #ff2ea0;color:#fff;font:900 12px system-ui,sans-serif;letter-spacing:.05em;box-shadow:0 0 14px #ff2ea088;white-space:nowrap';document.body.appendChild(lab);return lab;}
+function bindStep(dt){const L=live();const cand=[];for(const e of ADV.en){if(e.dead)continue;if(e._bindLock&&t()<e._bindLock)continue;const bi=e._bi||(e._bi0?null:null);
+  const info=e._bi||bindInfo(e);if(!info){continue;}if(!e._bi){e._bi=info;e._bt0=t();e._bm=0;e._out=0;}if(t()-e._bt0>6&&!(e._bm>0))continue;cand.push(e);}
+ cand.sort((a,b)=>Math.min(...L.map(f=>Math.hypot(f.x-a.x,f.z-a.z)))-Math.min(...L.map(f=>Math.hypot(f.x-b.x,f.z-b.z))));const show=cand.slice(0,2);
+ while(rings.length<show.length)rings.push(ringMesh());rings.forEach((g,i)=>{g.visible=!!show[i];});let labTxt=null,labE=null;
+ show.forEach((e,i)=>{const g=rings[i];g.position.set(e.x,.06,e.z);const binders=L.filter(f=>held[f.side]&&Math.hypot(f.x-e.x,f.z-e.z)<=3.5);
+  const plv=L.length?LV.rec(L[0].mi).lv||1:1,elv=e.rlv||(1+Math.round((ADV.stage||0)*6/9));const bt=e._bi.base*Math.max(.7,Math.min(1.6,1+.06*(elv-plv)));
+  if(binders.length){e._bm+=dt/bt*(binders.length>1?1.6:1);e._out=0;e._binders=binders;}else if(e._bm>0){e._out+=dt;if(e._out>1.5){fail(e,'left the ring');return;}}
+  if(e._bm>=1)return success(e,binders.length?binders:L);
+  const fr=Math.max(0,Math.min(1,e._bm));const arc=Math.max(.001,fr*Math.PI*2);if(Math.abs(arc-g.userData.arc)>.02){g.userData.arc=arc;g.userData.m2.geometry.dispose();g.userData.m2.geometry=new T.TorusGeometry(3.5,.11,6,64,arc);}
+  g.userData.m1.material.opacity=.45+.4*Math.abs(Math.sin(t()*5));if(!labE){labE=e;const keys=G.advP2?'F / U':'F';const left=Math.max(0,6-(t()-e._bt0));
+   labTxt=e._bm>0?'魂 BINDING '+Math.round(fr*100)+'% · keep holding '+keys:'魂 '+sp(e._bi.sp).name.toUpperCase()+' '+STARS(e._bi.st)+' · HOLD '+keys+' (Ⓓ-pad ↓) in the ring · '+left.toFixed(1)+' s';}});
+ const lb=label();if(labE&&labTxt){try{const v=labE.chest().clone();v.y+=1.2;v.project(camera);if(v.z<1){lb.style.display='block';lb.style.left=((v.x*.5+.5)*innerWidth)+'px';lb.style.top=((-v.y*.5+.5)*innerHeight)+'px';if(lb._t!==labTxt){lb.textContent=labTxt;lb._t=labTxt;}}else lb.style.display='none';}catch(er){lb.style.display='none';}}else lb.style.display='none';}
+function fail(e,why){e._bindLock=t()+10;e.hp=Math.min(e.max||e.hp,e.hp+Math.round((e.max||e.hp)*.2));e._bi=null;e._bm=0;e._out=0;try{A.toast&&A.toast('魂 BIND FAILED',true,why+' · it healed · 10 s before you can bind it again');}catch(er){}}
+function success(e,by){const info=e._bi;const c=newCore(info.sp,info.st);if(e.type==='B')D().boss.foundry_titan=1;let p=null;try{p=e.chest();}catch(er){}
+ e.hp=0;e.dead=1;e._bi=null;const f=by[0];if(f&&ST[f.side])ST[f.side].kos++;try{burst(p,70,[sp(info.sp).col,0xffffff,0xff2ea0],5,{life:.7,s0:.08});ring(p,.1,2.2,.5,0x29e6ff,3,true);sfx('ko');}catch(er){}
+ try{A.award(Math.round(({m:7,d:8,g:10,N:150,B:600})[e.type]||9)*(e.elite?1.5:.5),e.rlv||null,null,'capture');}catch(er){}
+ try{if(A.pickups&&A.pickups.capture&&f&&p)A.pickups.capture(p,f.root,{parent:scene,height:1.6,color1:sp(info.sp).col,color2:0xff3fb0});}catch(er){}
+ D().stats=D().stats||{};D().stats.captures=(D().stats.captures||0)+1;A.save.dirty('capture');
+ try{A.toast&&A.toast('魂 CAPTURED · '+sp(info.sp).name.toUpperCase()+' '+STARS(info.st),false,'press J for LOADOUT · equip it on Z / X / C or fuse it');}catch(er){}SP_UI.badge=1;return c;}
+/* a hit taken while binding costs 30% of the meter (bosses 40%) */
+if(typeof advHurt==='function'){const _hu=advHurt;advHurt=function(f,dmg,e){const h0=f?f.hp:0;const r=_hu.apply(this,arguments);try{if(isAdv()&&f&&f.hp<h0&&held[f.side])for(const q of ADV.en){if(q._bi&&q._bm>0&&Math.hypot(f.x-q.x,f.z-q.z)<=3.6){q._bm=Math.max(0,q._bm-((q.type==='B'||q.type==='N')?.4:.3));}}}catch(er){}return r;};}
+/* boss cores from the region fights become 5★ spirits */
+function bossCores(){try{const w=A.save.data.world;if(!w||!w.cores)return;const s=D();for(const id in w.cores){if(!w.cores[id]||s.boss[id]||!BOSS_SP[id])continue;s.boss[id]=1;const c=newCore(BOSS_SP[id],id==='voidwhisker'?6:5);try{A.toast('魂 BOSS SPIRIT · '+sp(c.sp).name.toUpperCase(),false,'5★ · in your LOADOUT (J)');}catch(e){}}}catch(e){}}
+/* ---------- fusion ---------- */
+const fuseCost=(a,b)=>8*(a.st+b.st);
+function fusePreview(a,b){if(!a||!b||a.id===b.id)return null;const pr=PAIRS.find(p=>(p[0]===a.sp&&p[1]===b.sp)||(p[1]===a.sp&&p[0]===b.sp));
+ const bossy=['ronin_rotor','admiral_angler','pharaoh_prism','rime_regent'];const lev=(a.sp==='foundry_titan'&&bossy.includes(b.sp)&&b.st>=5)||(b.sp==='foundry_titan'&&bossy.includes(a.sp)&&a.st>=5);
+ const hi=a.st>=b.st?a:b;return {unique:lev?'neon_leviathan':pr?pr[2]:null,sp:lev?'neon_leviathan':pr?pr[2]:hi.sp,st:Math.max(a.st,b.st),plus:a.st===b.st&&a.st<6,cost:fuseCost(a,b),diffFam:a.fam!==b.fam};}
+function fuse(f,a,b,atShrine){const P=fusePreview(a,b);if(!P)return {err:'Pick two different cores'};if(!atForge(f))return {err:'Fusion works at a Fusion Forge kiosk or a Forge Shrine'};const coins=ST[f.side]?ST[f.side].coins||0:0;if(coins<P.cost)return {err:'Need '+P.cost+' coins (you have '+coins+')'};
+ ST[f.side].coins-=P.cost;let st=P.st;if(P.plus&&R_()<(atShrine?.45:.35))st++;st=Math.min(6,st);const pool=[...new Set([...(a.tr||[]),...(b.tr||[])])];const n=st>=4?3:2;const tr=[];while(tr.length<n&&pool.length)tr.push(pool.splice((R_()*pool.length)|0,1)[0]);
+ const mut=R_()<((atShrine?.12:.08)+(P.diffFam?.03:0));if(mut){const extra=TKEYS.filter(k=>!tr.includes(k));if(extra.length)tr.push(extra[(R_()*extra.length)|0]);}
+ for(const c of [a,b]){const h=holder(c.id);if(h)LO(h[0])[h[1]]=null;}const s=D();s.cores=s.cores.filter(c=>c!==a&&c!==b);const fus=(Math.max(a.fus||0,b.fus||0))+1;
+ const c=newCore(P.sp,st,tr,{mut:mut?1:0,fus});try{const kept=[a,b].find(x=>x.sp===c.sp);if(kept&&A.skill&&A.skill.moveTree)A.skill.moveTree('sp.c.'+kept.id,'sp.c.'+c.id,2);}catch(e){}
+ s.stats=s.stats||{};s.stats.fusions=(s.stats.fusions||0)+1;A.save.write('fuse');applyAll();return {core:c,unique:!!P.unique,up:st>P.st,mut};}
+A.spirits.fuse=fuse;A.spirits.fusePreview=fusePreview;
+/* Forge = near a kiosk or a shrine */
+function atForge(f){if(!f)return null;try{for(const k of (window.SHOP&&SHOP.kiosks)||[])if(Math.hypot(f.x-k.x,f.z-k.z)<5)return 'kiosk';}catch(e){}try{if(A.skill&&A.skill.nearShrine(f))return 'shrine';}catch(e){}return null;}
+const foesNear=(f,r)=>ADV.en.some(e=>!e.dead&&!e.boss2&&e.aggro&&Math.hypot(e.x-f.x,e.z-f.z)<r);
+A.spirits.atForge=atForge;A.spirits.foesNear=foesNear;
+/* ---------- Awakening: chrome beast of the strongest spirit ---------- */
+const BEASTS=[];function beast(f){let best=null;for(const c of equipped(f))if(!best||c.st>best.st)best=c;const S=best?sp(best.sp):{name:(MECH_INFO[f.mi]||{}).name+' spirit',col:0xff2ea0,kanji:'魂'};
+ const g=new T.Group();const chrome=new T.MeshStandardMaterial({color:0xe8eef8,metalness:1,roughness:.12,emissive:S.col,emissiveIntensity:.35});const glow=new T.MeshBasicMaterial({color:S.col,transparent:true,opacity:.75,depthWrite:false});
+ const body=new T.Mesh(new T.IcosahedronGeometry(1,2),chrome);body.scale.set(1.1,.85,1.6);body.position.y=1.4;g.add(body);
+ const head=new T.Mesh(new T.IcosahedronGeometry(.62,2),chrome);head.position.set(0,2.15,1.35);g.add(head);
+ for(const s of [-1,1]){const ear=new T.Mesh(new T.ConeGeometry(.22,.6,6),chrome);ear.position.set(s*.32,2.75,1.3);ear.rotation.z=-s*.25;g.add(ear);const eye=new T.Mesh(new T.SphereGeometry(.09,10,8),glow);eye.position.set(s*.22,2.25,1.92);g.add(eye);
+  for(const z of [.8,-.6]){const leg=new T.Mesh(new T.CylinderGeometry(.16,.1,1.1,8),chrome);leg.position.set(s*.6,.55,z);g.add(leg);}}
+ const tail=new T.Mesh(new T.TorusGeometry(.7,.09,8,24,Math.PI*1.3),chrome);tail.position.set(0,1.8,-1.4);tail.rotation.y=Math.PI/2;g.add(tail);
+ const halo=new T.Mesh(new T.TorusGeometry(1.9,.05,6,64),glow);halo.rotation.x=Math.PI/2;halo.position.y=.08;g.add(halo);
+ g.position.set(f.x-Math.sin(f.ang||0)*.6,0,f.z-Math.cos(f.ang||0)*.6);g.rotation.y=f.ang||0;g.scale.setScalar(.01);scene.add(g);BEASTS.push({g,t0:t(),mats:[chrome,glow]});
+ try{HUD.big('魂 AWAKENING',S.name.toUpperCase(),1200);}catch(e){}}
+function beastStep(){for(let i=BEASTS.length-1;i>=0;i--){const b=BEASTS[i],a=t()-b.t0;if(a>1.6){scene.remove(b.g);b.g.traverse(o=>{if(o.geometry)o.geometry.dispose();});b.mats.forEach(m=>m.dispose());BEASTS.splice(i,1);continue;}
+  const s=a<.35?a/.35*1.9:1.9+(a-.35)*.15;b.g.scale.setScalar(s);b.g.position.y=a<.35?0:Math.sin((a-.35)*3)*.3;b.mats[1].opacity=.75*(a>1.2?(1.6-a)/.4:1);b.mats[0].opacity=1;if(a>1.2){b.mats[0].transparent=true;b.mats[0].opacity=(1.6-a)/.4;}}}
+if(A.vx&&A.vx.use){const _vu=A.vx.use;A.vx.use=function(f,slot){const r=_vu.apply(this,arguments);if(r&&slot==='B'&&isAdv()&&f)try{beast(f);}catch(e){}return r;};}
+A.spirits.beast=beast;A.spirits.beasts=BEASTS;
+/* ---------- Fusion Pair secret: two opposite-element spirits equipped, 10 fights won ---------- */
+function oppPair(f){const els=equipped(f).map(c=>c.el);return els.some(a=>els.includes(ELEM_OPP[a]));}
+A.spirits.oppPair=oppPair;
+/* ---------- sim tick ---------- */
+if(typeof advAmbient==='function'){const _aa=advAmbient;advAmbient=function(dt){_aa.apply(this,arguments);SIM+=Math.min(.1,dt||0);if(!isAdv()){if(lab)lab.style.display='none';rings.forEach(g=>g.visible=false);return;}
+ try{bindStep(Math.min(.1,dt||0));tickQ();beastStep();if(((SIM*2)|0)!==(((SIM-dt)*2)|0)){bossCores();for(const f of F)if(f&&f._inn&&f.moves&&f.moves.length)for(let k=0;k<3;k++){const want=slotCore(f,k);if(!!want!==!!(f.moves[k]&&f.moves[k]._core)){applyAll();break;}}}}catch(e){if(!SP_UI.err){SP_UI.err=e;console.warn('[spirits]',e);}}};}
+const _as=advStart;advStart=function(){const r=_as.apply(this,arguments);applyAll();return r;};try{if(window.__game)__game.advStart=advStart;}catch(e){}
+if(typeof advExit==='function'){const _ax=advExit;advExit=function(){const r=_ax.apply(this,arguments);try{for(const f of F)if(f&&f._inn)for(let k=0;k<3;k++)f.moves[k]=f._inn[k];}catch(e){}return r;};}
+if(typeof setFighters==='function'){const _sf=setFighters;setFighters=function(){const r=_sf.apply(this,arguments);try{if(isAdv())applyAll();}catch(e){}return r;};try{if(window.__game)__game.setFighters=setFighters;}catch(e){}}
+/* ================= LOADOUT / FORGE screen ================= */
+const SP_UI=A.spiritsUI={open:false,tab:0,sel:0,side:0,msg:'',pick:[],badge:0};
+const css=document.createElement('style');css.id='loCss';css.textContent=`
+#w2lo{position:fixed;inset:0;z-index:2147482160;display:none;align-items:center;justify-content:center;background:radial-gradient(120% 90% at 50% 10%,rgba(16,30,80,.93),rgba(8,6,24,.96) 50%,rgba(3,4,10,.97));font-family:Bahnschrift,"DIN Alternate","Arial Narrow",Arial,sans-serif;color:#fff}
+#w2lo.on{display:flex}#w2lo .bx{width:min(1000px,96vw);max-height:96vh;overflow:auto;padding:14px 18px 12px;box-sizing:border-box;position:relative}
+#w2lo h1{margin:0;font:italic 900 30px/1 Bahnschrift,Arial;background:linear-gradient(90deg,#fff,#b8f7ff 30%,#29e6ff 55%,#ff2ea0);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 12px rgba(41,230,255,.5))}
+#w2lo .hd{display:flex;align-items:center;gap:6px 14px;flex-wrap:wrap;padding-right:96px;margin-bottom:6px}#w2lo .who{font:800 12px system-ui;color:#cfe8ff}#w2lo .who b{color:#ffd040}
+#w2lo .cls{position:absolute;top:12px;right:14px;font:italic 900 13px Bahnschrift,Arial;color:#fff;padding:9px 16px;border:1.5px solid rgba(255,255,255,.55);background:linear-gradient(180deg,rgba(255,46,160,.88),rgba(120,10,80,.92));clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);cursor:pointer}
+#w2lo .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 10px}#w2lo .tab{font:italic 900 12px Bahnschrift,Arial;letter-spacing:.06em;padding:8px 13px;color:#cfd6f5;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.16);clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);cursor:pointer}
+#w2lo .tab.on{color:#04121a;background:linear-gradient(90deg,#29e6ff,#b8f7ff);border-color:#fff}
+#w2lo .sec{font:900 11px system-ui;letter-spacing:.18em;color:#8aa0c8;margin:10px 0 6px}
+#w2lo .row{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+#w2lo .it{position:relative;text-align:left;font:inherit;color:#fff;padding:9px 11px 9px 50px;min-height:58px;cursor:pointer;background:linear-gradient(165deg,rgba(22,40,110,.92),rgba(10,10,44,.95) 55%,rgba(6,8,24,.97));border:1.5px solid rgba(41,230,255,.3);clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
+#w2lo .it .kj{position:absolute;left:8px;top:50%;margin-top:-17px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font:900 18px/1 serif;color:#1a1000;background:radial-gradient(circle at 35% 30%,#fff,var(--c,#29e6ff) 60%,#202040);box-shadow:0 0 12px var(--c,#29e6ff)}
+#w2lo .it b{display:block;font:italic 900 14px/1.1 Bahnschrift,Arial}#w2lo .it span{display:block;font:600 11px/1.3 system-ui;color:#d6dcf5;margin-top:2px}#w2lo .it em{font-style:normal;color:#ffd040}
+#w2lo .it.sel{border-color:#fff;box-shadow:0 0 0 2px #29e6ff,0 0 24px rgba(41,230,255,.6)}#w2lo .it.on{border-color:#ffd040}#w2lo .it.off{opacity:.42}#w2lo .it.pk{border-color:#ff2ea0;box-shadow:0 0 0 2px #ff2ea0}
+#w2lo .msg{min-height:16px;font:800 12px system-ui;color:#ffb3d9;margin-top:8px}#w2lo .ft{display:flex;justify-content:space-between;gap:10px;margin-top:8px;font:600 11px system-ui;color:#9a93bd;flex-wrap:wrap}
+#w2lo .pv{margin-top:8px;padding:10px 12px;border:1px dashed #29e6ff88;border-radius:10px;font:700 12px system-ui;color:#cfe8ff}#w2lo .pv b{color:#ffd040}
+#loBtn{position:fixed;right:12px;z-index:13;display:none;padding:9px 13px;border-radius:12px;font:900 13px/1 system-ui,sans-serif;color:#fff;border:1.5px solid #ffd0f0;background:linear-gradient(180deg,#ff8ad0,#ff2ea0 60%,#b0106a);box-shadow:0 0 16px rgba(255,46,160,.55),inset 0 1px 0 rgba(255,255,255,.6);cursor:pointer;pointer-events:auto}
+#loBtn kbd{display:inline-block;margin-left:8px;padding:1px 7px;border-radius:5px;font:900 11px/16px system-ui;background:rgba(0,0,0,.2);border:1px solid currentColor}#loBtn i{font-style:normal;position:absolute;top:-8px;left:-8px;padding:2px 6px;border-radius:7px;background:#29e6ff;color:#04121a;font:900 9.5px system-ui}
+body[data-mode=adv] #loBtn.on{display:block}
+@media (max-width:600px){#w2lo .bx{padding:10px 8px}#w2lo h1{font-size:22px}#w2lo .row{grid-template-columns:1fr 1fr}#w2lo .it{padding:7px 6px 7px 40px;min-height:52px}#w2lo .it .kj{width:28px;height:28px;font-size:15px;margin-top:-14px;left:6px}#w2lo .it b{font-size:12px}#w2lo .it span{font-size:9.5px}#w2lo .ft .k{display:none}#loBtn{padding:7px 9px;font-size:11px}#loBtn kbd{display:none}}`;
+document.head.appendChild(css);
+let ov=null,btn=null,pb=false;const TABS=['SPIRITS','FUSION','WEAPON','RUNES'];
+function dom(){if(ov)return;ov=document.createElement('div');ov.id='w2lo';document.body.appendChild(ov);
+ ov.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el)return;e.stopPropagation();const a=el.dataset.a;if(a==='close')return close();if(a==='tab'){SP_UI.tab=+el.dataset.i;SP_UI.sel=0;SP_UI.msg='';SP_UI.pick=[];return draw();}
+  if(a==='side'){SP_UI.side=1-SP_UI.side;return draw();}if(a==='it'){const i=+el.dataset.i;if(SP_UI.sel===i)act(i);else{SP_UI.sel=i;draw();}}});
+ btn=document.createElement('div');btn.id='loBtn';btn.innerHTML='魂 LOADOUT <kbd>J</kbd>';btn.title='Spirits, fusion, weapon and runes (J · controller X from the pause menu)';btn.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();openLo();});document.body.appendChild(btn);}
+const curF=()=>{const L=(()=>{try{return advActive();}catch(e){return F;}})();return L.find(f=>f&&f.side===SP_UI.side)||L[0];};
+let ITEMS=[];/* [{html,cls,act()}] */
+function coreLine(c){const S=sp(c.sp);return '<b>'+S.name+' '+STARS(c.st)+'</b><span>'+S.fam+' · '+S.el+' · special <em>'+S.special+'</em><br>'+(c.tr||[]).map(k=>TRAITS[k][0]).join(' · ')+(c.mut?' · ✦mutant':'')+'</span>';}
+function build(){const f=curF();ITEMS=[];if(!f)return '';const lo=LO(f.mi),lv=LV.rec(f.mi).lv||1,sf=SF(f),tier=tierOf(sf);const forge=atForge(f);const s=D();let h='';
+ const add=(html,cls,fn,kj,col)=>{const i=ITEMS.length;ITEMS.push({fn});return '<button type="button" class="it '+(cls||'')+(i===SP_UI.sel?' sel':'')+'" data-a="it" data-i="'+i+'" style="--c:#'+(col||0x29e6ff).toString(16).padStart(6,'0')+'"><i class="kj">'+(kj||'魂')+'</i>'+html+'</button>';};
+ if(SP_UI.tab===0){h+='<div class="sec">SPIRIT SLOTS · soul force '+sf+' · soul tier '+['','I','II','III','IV','V'][tier]+(STAR_CAP[tier]?' · equip up to '+(STAR_CAP[tier]>=6?'Mythic':STAR_CAP[tier]+'★'):' · captured spirits from tier II')+'</div><div class="row">';
+  SLOTS.forEach((k,i)=>{const c=lo[k]&&core(lo[k]);const lock=lv<SLOT_LV[k];const inn=(f._inn||f.moves)[i];h+=add(c?'<b>'+k+' · '+sp(c.sp).name+' '+STARS(c.st)+'</b><span>special: <em>'+sp(c.sp).special+'</em> · rank ×'+RANK[Math.min(6,c.st)]+'<br>select = put the innate spirit back</span>':'<b>'+k+' · innate spirit</b><span>special: <em>'+(inn?inn.name:'—')+'</em>'+(lock?'<br>🔒 slot opens for captured spirits at LV '+SLOT_LV[k]:'<br>select, then pick a core below')+'</span>',(SP_UI.slot===k?'pk ':'')+(lock?'off':c?'on':''),()=>{if(lock){SP_UI.msg='🔒 Slot '+k+' opens at LV '+SLOT_LV[k];return;}if(c&&SP_UI.slot===k){equip(f,k,null);SP_UI.msg='↺ '+k+' back to the innate spirit';SP_UI.slot=null;return;}SP_UI.slot=k;SP_UI.msg='Slot '+k+' selected · pick a core';},k,c?sp(c.sp).col:0xffd040);});
+  h+='</div><div class="sec">SPIRIT CORES · '+s.cores.length+' owned · hold F (D-pad ↓) in the ring around a weakened enemy to capture</div><div class="row">';
+  if(!s.cores.length)h+='<div style="font:600 12px system-ui;color:#9fb4d8">No cores yet. Knock an enemy below 25% HP, then stand in the pink ring and hold F.</div>';
+  for(const c of s.cores){const hd=holder(c.id);const why=canEquip(f,SP_UI.slot||'Z',c);h+=add(coreLine(c)+(hd?'<span>equipped: '+(MECH_INFO[hd[0]]||{}).name+' · '+hd[1]+'</span>':''),(hd&&hd[0]===f.mi?'on':'')+(why&&c.st>(STAR_CAP[tier]||0)?' off':''),()=>{const slot=SP_UI.slot||SLOTS.find(k=>!lo[k]&&lv>=SLOT_LV[k])||'Z';if(foesNear(f,20)&&!forge){SP_UI.msg='Enemies within 20 m · swap spirits when it is quiet, or at a kiosk / shrine';return;}const err=equip(f,slot,c.id);SP_UI.msg=err?'🔒 '+err:'✓ '+sp(c.sp).name+' equipped on '+slot+' · special: '+sp(c.sp).special;},sp(c.sp).kanji,sp(c.sp).col);}
+  h+='</div>';}
+ else if(SP_UI.tab===1){const [a,b]=SP_UI.pick.map(core);const P=a&&b?fusePreview(a,b):null;h+='<div class="sec">FUSION FORGE · '+(forge?'✓ at a '+forge+(forge==='shrine'?' (better odds)':''):'go to a kiosk or a shrine to fuse')+' · coins '+(ST[f.side]?ST[f.side].coins:0)+'</div>';
+  h+='<div class="pv">'+(a?'<b>A</b> '+sp(a.sp).name+' '+STARS(a.st):'pick core A')+' + '+(b?'<b>B</b> '+sp(b.sp).name+' '+STARS(b.st):'pick core B')+(P?' → <b>'+sp(P.sp).name+'</b> '+STARS(P.st)+(P.plus?' (35% '+(forge==='shrine'?'45%':'')+' chance of +1★)':'')+(P.unique?' · ✦ SECRET PAIRING':'')+' · cost <b>'+P.cost+'</b> coins':'')+'</div><div class="row">';
+  if(P)h+=add('<b>⚗ FUSE NOW</b><span>both cores are consumed · traits: pick from both parents · 8% mutation</span>',forge?'on':'off',()=>{if(!forge){SP_UI.msg='Fusion works at a kiosk or a shrine';return;}const r=fuse(f,a,b,forge==='shrine');if(r.err){SP_UI.msg=r.err;return;}SP_UI.pick=[];SP_UI.msg='✦ FUSED: '+sp(r.core.sp).name+' '+STARS(r.core.st)+(r.unique?' · SECRET PAIRING':'')+(r.up?' · +1★!':'')+(r.mut?' · MUTATION':'');try{sfx('ko');}catch(e){}},'⚗',0xffd040);
+  for(const c of s.cores)h+=add(coreLine(c),SP_UI.pick.includes(c.id)?'pk':'',()=>{const i=SP_UI.pick.indexOf(c.id);if(i>=0)SP_UI.pick.splice(i,1);else{if(SP_UI.pick.length>=2)SP_UI.pick.shift();SP_UI.pick.push(c.id);}SP_UI.msg='';},sp(c.sp).kanji,sp(c.sp).col);h+='</div>';}
+ else if(SP_UI.tab===2||SP_UI.tab===3){const W=A.weapons;if(!W){h+='<div class="sec">weapons offline</div>';}else h+=W.uiHtml(f,SP_UI.tab===3,add,forge);}
+ return h;}
+function draw(){if(!ov)return;const f=curF();if(!f)return;const body=build();SP_UI.sel=Math.max(0,Math.min(ITEMS.length-1,SP_UI.sel));const body2=build();
+ ov.innerHTML='<div class="bx" role="dialog" aria-label="Loadout"><button type="button" class="cls" data-a="close">✕ CLOSE</button><div class="hd"><h1>魂 LOADOUT</h1><div class="who">'+(G.advP2?'<span data-a="side" style="cursor:pointer;text-decoration:underline">P'+(SP_UI.side+1)+' ⇄</span> · ':'')+(MECH_INFO[f.mi]||{}).name+' · <b>LV '+(LV.rec(f.mi).lv||1)+'</b></div></div>'+
+  '<div class="tabs">'+TABS.map((x,i)=>'<span class="tab'+(i===SP_UI.tab?' on':'')+'" data-a="tab" data-i="'+i+'">'+x+'</span>').join('')+'</div>'+body2+'<div class="msg">'+(SP_UI.msg||'')+'</div><div class="ft"><span class="k">←→↑↓ / D-pad choose · Enter / Ⓐ select · Q E / LB RB tabs · J / Esc / Ⓑ close</span></div></div>';}
+function act(i){const it=ITEMS[i];if(it&&it.fn)it.fn();draw();}
+function openLo(){dom();if(SP_UI.open)return true;if(!isAdv())return false;if(G.ui==='menu'&&A.f1&&A.f1.resume)A.f1.resume();if(G.ui||(window.SHOP&&SHOP.open)||(A.ui&&A.ui.open)||(A.skill&&A.skill.open))return false;
+ const b=document.getElementById('w2board');if(b&&b.classList.contains('on')&&A.world2&&A.world2.closeBoard)A.world2.closeBoard();SP_UI.open=true;pb=!!G.paused;pause(true);SP_UI.msg='';SP_UI.badge=0;draw();ov.classList.add('on');return true;}
+function close(){if(!SP_UI.open)return;SP_UI.open=false;SP_UI.slot=null;ov.classList.remove('on');pause(pb);A.save.dirty('loadout');}
+SP_UI.openLo=openLo;SP_UI.close=close;SP_UI.draw=draw;
+addEventListener('keydown',e=>{const c=e.code;
+ if(SP_UI.open){e.preventDefault();e.stopImmediatePropagation();if(e.repeat&&!c.startsWith('Arrow'))return;const n=ITEMS.length||1;
+  if(c==='Escape'||c==='KeyJ'||c==='Backspace')return close();if(c==='ArrowRight'||c==='ArrowDown'||c==='KeyD'||c==='KeyS')SP_UI.sel=(SP_UI.sel+1)%n;else if(c==='ArrowLeft'||c==='ArrowUp'||c==='KeyA'||c==='KeyW')SP_UI.sel=(SP_UI.sel+n-1)%n;
+  else if(c==='KeyE'||c==='Tab'||c==='BracketRight'){SP_UI.tab=(SP_UI.tab+1)%TABS.length;SP_UI.sel=0;SP_UI.pick=[];SP_UI.msg='';}else if(c==='KeyQ'||c==='BracketLeft'){SP_UI.tab=(SP_UI.tab+TABS.length-1)%TABS.length;SP_UI.sel=0;SP_UI.pick=[];SP_UI.msg='';}
+  else if(c==='Enter'||c==='Space'||c==='NumpadEnter')return act(SP_UI.sel);else if(c==='KeyP'&&G.advP2)SP_UI.side=1-SP_UI.side;else return;draw();try{const el=ov.querySelector('.it.sel');if(el&&el.scrollIntoView)el.scrollIntoView({block:'nearest'});}catch(er){}return;}
+ if(c!=='KeyJ'||e.repeat||e.defaultPrevented||!isAdv())return;if(G.ui==='menu'||(!G.ui&&!G.paused)){e.preventDefault();e.stopImmediatePropagation();openLo();}},true);
+function tick(){requestAnimationFrame(tick);dom();const show=isAdv()&&!G.ui;btn.classList.toggle('on',show);if(!show)return;const sb=document.getElementById('skBtn');let top=372;if(sb){const r=sb.getBoundingClientRect();if(r.height>0)top=r.bottom+8;}btn.style.top=top+'px';
+ const k=SP_UI.badge?'<i>NEW</i>':'';if(btn._k!==k){btn._k=k;btn.innerHTML=k+'魂 LOADOUT <kbd>J</kbd>';}}
+requestAnimationFrame(tick);
+})();
+
+</script>
+<script>/* adv2_weapons.js */
+/* ===== ADV2 · WEAPONS 器 (Deploy F2): auto weapon attack after N regular hits, properties, forms, throw / recall,
+   Weapon Arts I / II, runes, weapon level. SPIRITS.md §6. Adventure only; Versus / Boxing untouched. ===== */
+(function(){'use strict';const A=window.ADV2;if(!A||!A.save||!A.spirits||typeof G==='undefined'||typeof THREE==='undefined'&&typeof T==='undefined')return;
+const TT=typeof T!=='undefined'?T:THREE;const S=A.spirits;const isAdv=()=>typeof ADV!=='undefined'&&ADV.on&&G.mode==='adv';const t=()=>(A.simT?A.simT():G.t);
+const TYPES=['blade','heavy','staff','gauntlet','thrown','bow'];
+/* id: name, kanji, type, kind (plain|form|throw), N, cd, from (species core / drop), colour, prop */
+const DEF={sig:{name:'Signature gear',kj:'気',type:null,kind:'plain',N:5,cd:8,col:0x29e6ff,prop:null,art:['Aura Rush','Aura Crown']},
+ greatsword:{name:'Golem Greatsword',kj:'岩',type:'heavy',kind:'plain',N:6,cd:10,from:'slate_golem',col:0xb0b8d0,prop:'armor',art:['Rockfall','Fault Line']},
+ saber:{name:'Drone Orbit Saber',kj:'蛾',type:'blade',kind:'form',N:4,cd:8,from:'hover_moth',col:0x9a7aff,prop:'form',forms:['orbit','sweep'],art:['Swarm Cut','Orbit Lock']},
+ chainsaw:{name:'Shark Chainsaw',kj:'鮫',type:'blade',kind:'plain',N:5,cd:9,from:'glass_shark',col:0x7af0ff,prop:'bleed',art:['Feeding Frenzy','Fin Wake']},
+ crane_staff:{name:'Crane-Staff',kj:'鶴',type:'staff',kind:'plain',N:5,cd:8,from:'torii_crane',col:0xffe6a0,prop:'pull',art:['Crane Spiral','Heron Strike']},
+ ice_gauntlets:{name:'Ice Gauntlets',kj:'鹿',type:'gauntlet',kind:'plain',N:4,cd:7,from:'rime_stag',col:0xb8f0ff,prop:'counter',art:['Frost Barrage','Glacier Guard']},
+ chakram:{name:'Chakram of Tides',kj:'潮',type:'thrown',kind:'throw',N:5,cd:9,drop:'Bay side quest',col:0x40c0ff,prop:'pin',art:['Tide Ring','Riptide Recall']},
+ prism_bow:{name:'Prism Bow',kj:'光',type:'bow',kind:'form',N:5,cd:10,drop:'Dunes secret spot',col:0xfff080,prop:'form',forms:['close','reach','shot'],art:['Spectrum Volley','Refraction']},
+ null_cane:{name:'Null Cane',kj:'無',type:'heavy',kind:'form',N:5,cd:10,from:'voidwhisker',col:0xb040ff,prop:'drain',forms:['cane','whip','cards'],art:['Card Storm','Grey Out']}};
+const RUNES={chain:['Chain Lightning','雷','the last hit arcs to 1 more enemy (50%)'],ricochet:['Ricochet','跳','projectiles and shockwaves bounce once (50%)'],lifesteal:['Lifesteal','血','heals 8% of the damage'],stagger:['Stagger','震','the last hit staggers 0.4 s']};
+const RUNE_ORDER=['chain','stagger','lifesteal','ricochet'];
+function D(){const d=A.save.data;if(!d.weapons||typeof d.weapons!=='object')d.weapons={};const w=d.weapons;if(!w.own)w.own={};if(!w.sock)w.sock={};if(!w.lv)w.lv={};if(!w.form)w.form={};if(w.runeSeen==null)w.runeSeen=0;return w;}
+const W2=()=>(A.save.data&&A.save.data.world)||{};
+const sigKey=mi=>'sig.'+mi;const defOf=key=>{if(!key)return null;if(key.startsWith('sig.')){const mi=+key.slice(4);return Object.assign({},DEF.sig,{type:TYPES[mi%6],name:((typeof MECH_INFO!=='undefined'&&MECH_INFO[mi])?MECH_INFO[mi].name:'')+' signature gear'});}return DEF[key]||null;};
+const lvl=f=>{try{return A.lv.rec(f.mi).lv||1;}catch(e){return 1;}};
+function cur(f){if(!f||f.mi==null)return null;const lo=S.LO(f.mi);let key=lo.weapon&&D().own[lo.weapon]?lo.weapon:sigKey(f.mi);const def=defOf(key);const locked=key.startsWith('sig.')&&lvl(f)<2?'auto attack unlocks at LV 2':null;return {key,def,locked};}
+const WL=key=>{const w=D();return w.lv[key]||(w.lv[key]={lv:1,xp:0});};
+const XPN=[0,6,14,26,42];
+/* runes: earned from secret spots (1 per 3) and side quests (1 per 2), across all regions */
+function runeCount(){const w=W2();let s=0,q=0;for(const k in (w.secrets||{}))s+=(w.secrets[k]||[]).length;for(const k in (w.quests||{}))if(w.quests[k])q++;return Math.floor(s/3)+Math.floor(q/2);}
+function runesOwned(){const n=runeCount(),o={};for(let i=0;i<n;i++){const r=RUNE_ORDER[i%4];o[r]=(o[r]||0)+1;}return o;}
+function sockets(f,key){let n=1;if(WL(key).lv>=5)n=2;try{const e=A.skill.effWp(f);if(e&&e.socket)n=2;}catch(er){}return n;}
+const sockOf=key=>D().sock[key]||(D().sock[key]=[]);
+function runeFree(r){const own=runesOwned()[r]||0;let used=0;for(const k in D().sock)used+=D().sock[k].filter(x=>x===r).length;return own-used;}
+function runesOn(key){const o={};for(const r of sockOf(key))o[r]=(o[r]||0)+1;return o;}
+/* drops / forge unlocks */
+function checkDrops(){const w=W2(),d=D();let got=null;if(!d.own.chakram&&Object.keys(w.quests||{}).some(k=>k.startsWith('bay.')&&w.quests[k])){d.own.chakram={at:Date.now()};got='chakram';}
+ if(!d.own.prism_bow&&((w.secrets&&w.secrets.dunes)||[]).length>=1){d.own.prism_bow={at:Date.now()};got='prism_bow';}
+ if(got){A.save.dirty('weapon');try{A.toast&&A.toast('器 NEW WEAPON',false,DEF[got].name+' · press J (loadout)');}catch(e){}}
+ const rc=runeCount();if(rc>d.runeSeen){d.runeSeen=rc;A.save.dirty('rune');try{A.toast&&A.toast('✦ NEW RUNE',false,RUNES[RUNE_ORDER[(rc-1)%4]][0]+' · socket it in J › RUNES');}catch(e){}}}
+function forge(f,id){const D0=DEF[id];if(!D0||!D0.from)return {err:'This weapon is not forged'};if(D().own[id])return {err:'Already forged'};if(!S.atForge(f))return {err:'Forge at a kiosk or a shrine'};
+ const c=S.D().cores.find(c=>c.sp===D0.from&&!S.holder(c.id));if(!c)return {err:'Needs a free '+S.sp(D0.from).name+' core'};const cost=40;if(!ST[f.side]||ST[f.side].coins<cost)return {err:'Needs '+cost+' coins'};
+ ST[f.side].coins-=cost;S.D().cores.splice(S.D().cores.indexOf(c),1);D().own[id]={at:Date.now(),core:c.sp,el:c.el};A.save.dirty('forge');return {ok:1};}
+function equip(f,key){S.LO(f.mi).weapon=key&&!key.startsWith('sig.')?key:null;A.save.dirty('wequip');}
+/* ---------- state per fighter ---------- */
+const WS=f=>f._wp||(f._wp={streak:0,last:-9,cd:0,cnt:0,form:0,lastHit:-9,lastHitD:0,out:null,a1:0,a2:0,orbit:0,orbitT:0,haste:0,freeze:0});
+const fx=()=>({});
+function nnodes(f){const o=A.skill&&A.skill.wfx?A.skill.wfx(f):{};return o||{};}
+function needN(f){const w=cur(f);let n=w.def.N;const e=nnodes(f);if(e.nMinus)n=Math.max(3,n-e.nMinus);return n;}
+function cdOf(f){const w=cur(f);const e=nnodes(f);return Math.max(3,(w.def.cd-.4*(WL(w.key).lv-1))*(1-(e.wcd||0)));}
+/* damage through advDmgEnemy with the weapon tagged (skill-tree weapon / mastery nodes apply via A.dmgMul) */
+function wHit(f,e,dmg,o,list,art){if(!e||e.dead)return 0;const w=cur(f);const k=f._skKind;f._skKind={kind:'wp',art:!!art};const h0=e.hp;
+ let m=1+.04*(WL(w.key).lv-1);const s=WS(f);if(s.od)m*=1.5;try{dmgE(f,e,Math.max(1,Math.round(dmg*m)),Object.assign({kb:.35,col:w.def.col},o||{}));}catch(er){if(!wHit.err){wHit.err=er;console.warn('[weapons]',er);}}f._skKind=k;
+ const dd=h0-Math.max(0,e.hp);if(dd>0&&list)list.push([e,dd]);return dd;}
+const foes=(f,r,cx,cz)=>ADV.en.filter(e=>!e.dead&&Math.hypot(e.x-(cx??f.x),e.z-(cz??f.z))<r+(e.r||.5)*.5);
+function arc(f,r,cosMin,back){const fx=Math.sin(f.ang||0),fz=Math.cos(f.ang||0);return ADV.en.filter(e=>{if(e.dead)return false;const dx=e.x-f.x,dz=e.z-f.z,d=Math.hypot(dx,dz);if(d>r+(e.r||.5)*.5)return false;if(d<.6)return true;const c=(dx*fx+dz*fz)/d;return c>=cosMin||(back&&c<=-cosMin);});}
+function line(f,len,w,ang){const a=ang??(f.ang||0);const fx=Math.sin(a),fz=Math.cos(a);return ADV.en.filter(e=>{if(e.dead)return false;const dx=e.x-f.x,dz=e.z-f.z,al=dx*fx+dz*fz,lat=Math.abs(dx*fz-dz*fx);return al>-.3&&al<len&&lat<w+(e.r||.5)*.4;});}
+const boss=e=>!!(e.boss2||e.type==='B'||e.type==='N');
+/* scripted damage to an Adventure enemy (same path as a landed hit: perks, A.dmgMul, kill credit) */
+function dmgE(f,e,dmg,o){o=o||{};if(!e||e.dead)return 0;const B=boss(e);const d0=perkDmg(f,dmg);e.hp-=d0;try{perkLeech(f,d0);}catch(er){}if(ST[f.side])ST[f.side].dmg+=d0+Math.min(0,e.hp);
+ if(!o.nostun){e.stun=Math.max(e.stun||0,B?.12:.3);if(!B)e.wind=0;}e.aggro=1;const dx=e.x-f.x,dz=e.z-f.z,mm=Math.hypot(dx,dz)||1;const kb=(o.kb==null?.3:o.kb)*(B?.6:3);e.vx=dx/mm*kb;e.vz=dz/mm*kb;
+ let p=null;try{p=e.chest();burst(p,10+Math.min(20,d0),[o.col||0x29e6ff,0xffffff],3,{life:.35,s0:.05});popDmg(p,d0,d0>=12);}catch(er){}
+ if(e.hp<=0){e.dead=1;if(ST[f.side])ST[f.side].kos++;try{killQuip(f,e.type);if(p){burst(p,50,[0xff2ea0,0x29e6ff,0xffffff],5,{life:.6,s0:.08});ring(p,.1,1.4,.35,0xff2ea0,3,true);}sfx('slam');}catch(er){}}
+ G.hitStop=Math.max(G.hitStop||0,.03);return d0;}
+A.wDmg=dmgE;
+const V=(x,y,z)=>new TT.Vector3(x,y,z);
+/* ---------- FX (math shapes, pooled) ---------- */
+let FXR=null;function fxInit(){if(FXR||typeof scene==='undefined')return;FXR={g:new TT.Group(),items:[]};scene.add(FXR.g);
+ const mat=c=>new TT.MeshBasicMaterial({color:new TT.Color(c).multiplyScalar(2.2),transparent:true,opacity:.95,depthWrite:false,blending:TT.AdditiveBlending});
+ const saber=new TT.Group();const b=new TT.Mesh(new TT.BoxGeometry(.08,.05,1.1),mat(0x9a7aff));b.position.z=.55;saber.add(b);const tip=new TT.Mesh(new TT.ConeGeometry(.06,.25,6),mat(0xffffff));tip.rotation.x=Math.PI/2;tip.position.z=1.2;saber.add(tip);
+ const chak=new TT.Group();chak.add(new TT.Mesh(new TT.TorusGeometry(.38,.06,6,28),mat(0x40c0ff)));for(let i=0;i<3;i++){const c=new TT.Mesh(new TT.ConeGeometry(.08,.3,5),mat(0xb8f7ff));const a=i/3*Math.PI*2;c.position.set(Math.cos(a)*.45,Math.sin(a)*.45,0);c.rotation.z=a-Math.PI/2;chak.add(c);}chak.rotation.x=Math.PI/2;
+ const chakW=new TT.Group();chakW.add(chak);
+ FXR.saber=saber;FXR.chak=chakW;saber.visible=chakW.visible=false;FXR.g.add(saber,chakW);}
+function pop(p,col,r){try{burst(p,16,[col,0xffffff],3,{life:.35,s0:.06});ring(p,.2,r||2,.35,col,3);}catch(e){}}
+const chestOf=f=>{try{return f.chest();}catch(e){return V(f.x,1.2,f.z);}};
+/* ---------- the auto attacks ---------- */
+function rune(f,list,key,amt){const R=runesOn(key);if(!list.length)return;const last=list[list.length-1][0];const D0=amt||1;
+ if(R.chain){for(let n=0;n<R.chain;n++){const o=ADV.en.filter(e=>!e.dead&&!list.some(z=>z[0]===e)&&Math.hypot(e.x-last.x,e.z-last.z)<4).sort((a,b)=>Math.hypot(a.x-last.x,a.z-last.z)-Math.hypot(b.x-last.x,b.z-last.z))[0];if(o){const d=list[list.length-1][1]*.5;wHit(f,o,d,{nostun:true,col:0x8fd8ff},list);try{hBeam(f,'rc'+n,chestOf(last),chestOf(o),0x8fd8ff,.06);}catch(er){}}}}
+ if(R.ricochet){const o=ADV.en.filter(e=>!e.dead&&!list.some(z=>z[0]===e)&&Math.hypot(e.x-last.x,e.z-last.z)<5)[0];if(o)wHit(f,o,list[0][1]*.5*R.ricochet,{nostun:true},list);}
+ if(R.lifesteal&&!(typeof perkNoHeal==='function'&&perkNoHeal(f))){const sum=list.reduce((a,z)=>a+z[1],0);f.hp=Math.min(f.hpMax,f.hp+Math.round(sum*.08*R.lifesteal));}
+ if(R.stagger&&!last.dead)try{stagger(last,.4*R.stagger);}catch(er){last.stun=Math.max(last.stun||0,.4);}}
+function propDur(f){const e=nnodes(f);return 1+(e.prop||0);}
+function afterHits(f,w,list,extraOK){if(!list.length)return;const e=nnodes(f);
+ /* skill-tree extras: +1 small hit (shockwave / recall / form break), mastery slam, forge element, ULT, heal */
+ if(extraOK&&e.extra&&w.def.kind==='plain'){const near=foes(f,2.5);for(const q of near)wHit(f,q,3,{nostun:true},list);pop(V(f.x,.15,f.z),w.def.col,2.5);}
+ if(e.slam){for(const q of foes(f,3)){wHit(f,q,e.slam,{},list);if(e.slamStun&&!boss(q))q.stun=Math.max(q.stun||0,e.slamStun);}pop(V(f.x,.1,f.z),0xffd040,3);}
+ const own=D().own[w.key];if(e.forge&&own&&own.el&&A.skill&&A.skill.onLanded){const EL={fire:{bleed:1},ice:{stun:.5},storm:{chain:.5},earth:{stun:.4},light:{stun:.4},void:{drain:3}};A.skill.onLanded(f,EL[own.el]||{},list.slice(),'wpx');}
+ const pass={};if(e.ult)pass.ult=e.ult;if(e.drain)pass.drain=e.drain;if(Object.keys(pass).length&&A.skill&&A.skill.onLanded)A.skill.onLanded(f,pass,list.slice(),'wpx');
+ rune(f,list,w.key);
+ /* weapon XP + skill points */
+ const L=WL(w.key);L.xp+=list.length;while(L.lv<5&&L.xp>=XPN[L.lv]){L.lv++;try{A.toast&&A.toast('器 WEAPON LV '+L.lv,false,w.def.name+' · +4% damage · −0.4 s cooldown');}catch(er){}}A.save.dirty('wxp');
+ try{A.skill&&A.skill.gain&&A.skill.gain(f,{kind:'wp'},list.length);}catch(er){}}
+function fire(f,ignoreCd){if(!isAdv()||!f||f.ko)return false;const w=cur(f);if(!w||w.locked)return false;const s=WS(f);if(s.cd>0&&!ignoreCd)return false;
+ fxInit();const e=nnodes(f);s.cnt++;s.od=!!(e.od&&s.cnt%3===0);if(!ignoreCd)s.cd=cdOf(f);s.streak=0;const list=[];const P=propDur(f),id=w.key.startsWith('sig.')?'sig':w.key,col=w.def.col;
+ if(e.armor||w.def.prop==='armor')f.iframe=Math.max(f.iframe||0,.45*(w.def.prop==='armor'?P:1));
+ const backOK=!!e.back;
+ if(id==='sig'){for(const q of foes(f,2.5))wHit(f,q,10,{},list);pop(V(f.x,1,f.z),colOf2(f),2.5);}
+ else if(id==='greatsword'){for(const q of line(f,4,.9))wHit(f,q,15,{kb:.5},list);pop(V(f.x+Math.sin(f.ang)*2,.1,f.z+Math.cos(f.ang)*2),col,2);try{hBeam(f,'gs',V(f.x,.1,f.z),V(f.x+Math.sin(f.ang)*4,.1,f.z+Math.cos(f.ang)*4),col,.3);}catch(er){}}
+ else if(id==='saber'){const fm=formOf(f);if(fm===1){for(const q of arc(f,2.6,Math.cos(Math.PI/3),backOK))wHit(f,q,12,{},list);pop(chestOf(f),col,2.6);}else{s.orbit=3;s.orbitT=0;s.orbitHit=new Map();}}
+ else if(id==='chainsaw'){const a=f.ang||0;f.vx=Math.sin(a)*7;f.vz=Math.cos(a)*7;for(const q of line(f,3.2,.8))for(let k=0;k<3;k++)wHit(f,q,4,{nostun:k<2},list);for(const [q] of list)if(!boss(q)&&A.skill)A.skill.BL.push({e:q,f,d:2,t:t()+.5,n:Math.round(3*P)+(nnodes(f).bleedTick||0),gap:.5});pop(chestOf(f),col,1.6);}
+ else if(id==='crane_staff'){for(const q of arc(f,4,Math.cos(1.1),backOK)){wHit(f,q,12,{},list);if(!boss(q)){const dx=f.x-q.x,dz=f.z-q.z,d=Math.hypot(dx,dz)||1;const pl=Math.min((3+(e.pullAdd||0))*P,Math.max(0,d-1.2));q.x+=dx/d*pl;q.z+=dz/d*pl;if(e.pullStun)q.stun=Math.max(q.stun||0,e.pullStun);}}pop(chestOf(f),col,4);}
+ else if(id==='ice_gauntlets'){for(const q of arc(f,2.2,.3,backOK))for(let k=0;k<2;k++){wHit(f,q,6,{},list);if(!boss(q))q.stun=Math.max(q.stun||0,.5*P);}pop(chestOf(f),col,1.8);}
+ else if(id==='chakram'){throwChakram(f,list,12);}
+ else if(id==='prism_bow'){const fm=formOf(f);if(fm===0){for(const q of foes(f,2))wHit(f,q,12,{},list);pop(chestOf(f),col,2);}else if(fm===1){for(const q of line(f,6,.6))wHit(f,q,11,{},list);beam(f,6,col,0);}else{const pierce=1+(e.pierceShot||0);for(const da of [-.18,0,.18]){const L=line(f,9,.4,(f.ang||0)+da).sort((a,b)=>Math.hypot(a.x-f.x,a.z-f.z)-Math.hypot(b.x-f.x,b.z-f.z)).slice(0,pierce);for(const q of L)wHit(f,q,4.5,{},list);beam(f,9,col,da);}}}
+ else if(id==='null_cane'){const fm=formOf(f);const L=fm===0?arc(f,2.4,.2,backOK):fm===1?line(f,4,.7):foes(f,3.5);for(const q of L){wHit(f,q,fm===2?9:12,{},list);}if(list.length&&!(typeof perkNoHeal==='function'&&perkNoHeal(f)))f.hp=Math.min(f.hpMax,f.hp+2*list.length);pop(chestOf(f),col,fm===2?3.5:2.4);}
+ afterHits(f,w,list,true);try{sfx('zap');}catch(er){}s.lastFire=t();G.wpLog=(G.wpLog||[]);G.wpLog.push({side:f.side,w:w.key,n:list.length,dmg:list.reduce((a,z)=>a+z[1],0),t:+t().toFixed(2)});if(G.wpLog.length>60)G.wpLog.shift();
+ s.od=false;return true;}
+function hBeam(o,k,a,b,col,w){try{const A_=a.clone(),B_=b.clone();holdBeam(o,k,()=>A_,()=>B_,col,Math.max(.35,Math.min(1,(w||.1)*4)));}catch(e){}}
+function colOf2(f){try{return colOf(f);}catch(e){return 0x29e6ff;}}
+function beam(f,len,col,da){try{const a=(f.ang||0)+(da||0);const p=chestOf(f);hBeam(f,'bw'+da,p,V(p.x+Math.sin(a)*len,p.y,p.z+Math.cos(a)*len),col,.08);}catch(e){}}
+const formOf=f=>{const w=cur(f);const n=(w.def.forms||[0]).length;return ((D().form[w.key]||0)%n+n)%n;};
+/* chakram: flies 8 m (pins the first enemy 1 s), waits 3 s, recall (FORM or auto) returns through enemies at 50% */
+function throwChakram(f,list,dmg){const s=WS(f);const a=f.ang||0;const e=nnodes(f);const P=propDur(f);const L=line(f,8,.6).sort((x,y)=>Math.hypot(x.x-f.x,x.z-f.z)-Math.hypot(y.x-f.x,y.z-f.z));let end=8;
+ if(L.length){const q=L[0];end=Math.hypot(q.x-f.x,q.z-f.z);wHit(f,q,dmg,{kb:.1},list);if(!boss(q))q.stun=Math.max(q.stun||0,(1+(e.pinAdd||0))*P);}
+ s.out={x:f.x+Math.sin(a)*end,z:f.z+Math.cos(a)*end,t:3,ang:a};if(FXR){FXR.chak.visible=true;FXR.chak.position.set(s.out.x,1,s.out.z);}}
+function recall(f){const s=WS(f);if(!s.out)return false;const w=cur(f);const o=s.out;s.out=null;if(FXR)FXR.chak.visible=false;const e=nnodes(f);const dx=f.x-o.x,dz=f.z-o.z,len=Math.hypot(dx,dz)||.01;const list=[];
+ const reps=1+(e.recall2?1:0)+(e.extra?1:0);const hitL=ADV.en.filter(q=>{if(q.dead)return false;const ax=q.x-o.x,az=q.z-o.z,al=(ax*dx+az*dz)/len,lat=Math.abs(ax*dz-az*dx)/len;return al>-.3&&al<len+.3&&lat<.8;});
+ for(let r=0;r<reps;r++)for(const q of hitL)wHit(f,q,r===0?6:3,{nostun:r>0,kb:-.2},list);try{hBeam(f,'rcl',V(o.x,1,o.z),chestOf(f),0x40c0ff,.1);}catch(er){}
+ if(list.length)afterHits(f,w,list,false);return true;}
+/* FORM button: cycle forms (Form Break bonus if within 0.15 s of a landed hit) / recall the chakram / send the saber */
+function formPress(f){if(!isAdv()||!f)return false;const w=cur(f);if(!w)return false;const s=WS(f);const e=nnodes(f);
+ if(w.def.kind==='throw'){if(s.out)return recall(f);try{A.toast&&A.toast('FORM',false,'Chakram is not out · it throws on its own after '+needN(f)+' hits');}catch(er){}return false;}
+ if(w.def.kind!=='form'){return false;}
+ D().form[w.key]=(D().form[w.key]||0)+1;A.save.dirty('form');const fm=formOf(f);const name=w.def.forms[fm];
+ if(e.haste)f.dashCd=0;
+ const win=.15+(e.fbWin||0);const list=[];if(t()-s.lastHit<=win&&s.lastHitE&&!s.lastHitE.dead){wHit(f,s.lastHitE,s.lastHitD*.6,{},list);if(e.extra)wHit(f,s.lastHitE,3,{nostun:true},list);pop(chestOf(s.lastHitE),0xffd040,1.4);G.formBreaks=(G.formBreaks||0)+1;try{HUD.big&&0;}catch(er){}}
+ if(w.key==='saber'&&s.orbit<=0&&fm===1){for(const q of arc(f,2.6,Math.cos(Math.PI/3)))wHit(f,q,4,{nostun:true},list);pop(chestOf(f),w.def.col,2.6);}
+ if(list.length)afterHits(f,w,list,false);
+ try{A.toast&&A.toast('FORM · '+name.toUpperCase(),false,w.def.name+(list.length?' · FORM BREAK!':''));}catch(er){}return true;}
+/* ---------- Weapon Arts ---------- */
+function artOpen(f,n){const w=cur(f);if(!w||!A.skill)return false;const T0=A.skill.trees(f);if(n===1){const tr=T0.find(x=>x.kind==='wp');return !!(tr&&A.skill.TR(tr.id).spent>0);}
+ const tm=T0.find(x=>x.kind==='wm');if(!tm)return false;const d=A.skill.TR(tm.id);return d.n.slice(3,6).some(Boolean)&&A.skill.rowOpen(tm,2);}
+const ARTCD=[0,8,12];
+function artDef(f,n){const w=cur(f);const base=(typeof JABS!=='undefined'&&JABS[f.mi])||JAB;const id=w.key.startsWith('sig.')?'sig':w.key;const key='_art'+n+'_'+id+'_'+f.mi;const C=artDef.C||(artDef.C={});if(C[key])return C[key];
+ const chainDps=base.hits.reduce((a,h)=>a+h.dmg,0)/base.dur;/* art = preset combo worth ≈1.9 × 1.2 s of chain, then a recovery freeze */
+ const total=chainDps*1.2*1.9;const nh=n===1?3:2;const per=Math.round(total/nh*10)/10;const freeze=n===1?.6:.8;const gap=.16,st=.1;
+ const hits=[],keys=[[0,{}]];for(let i=0;i<nh;i++){const tt=st+i*gap;hits.push({t:tt,dmg:per,range:n===2?3:2.3,kb:i===nh-1?.6:.2,col:w.def.col});keys.push([tt-.05,{}],[tt,(typeof POSE!=='undefined'&&POSE.jabL)||{}]);}
+ const dur=st+(nh-1)*gap+freeze;keys.push([dur,{}]);const d={name:w.def.art[n-1],dur,cd:0,keys,hits,fx:'jab',_wp:true,_art:n,_freeze:freeze,kind:n===2?'aoe':undefined};if(!d.kind)delete d.kind;return C[key]=d;}
+function useArt(f,n){if(!isAdv()||!f||f.ko||f.act&&!(f.act.def&&(f.act.def.jab||f.act.def===JAB)))return false;const w=cur(f);if(!w||!artOpen(f,n))return false;const s=WS(f);const k='a'+n;if(s[k]>0)return false;
+ const d=artDef(f,n);s[k]=ARTCD[n];f.block=false;const st=A.skill&&A.skill.effSt();const link=st&&st.art&&A.skill.SKX&&t()-A.skill.SKX(f).finT<1.2;
+ f.start(d);if(link)f.act.t+=Math.min(.2,d._freeze-.1)*0;s.artLink=link?.2:0;s.artT=t();
+ if(w.def.prop==='armor'||nnodes(f).armor)f.iframe=Math.max(f.iframe||0,d.dur-d._freeze);try{sfx('zap');}catch(er){}G.artLog=(G.artLog||[]);G.artLog.push({side:f.side,n,name:d.name,t:+t().toFixed(2)});return true;}
+/* art hits: weapon kind (skill dmg / Art link via A.dmgMul) + runes + weapon points */
+if(typeof advHit==='function'){const _ah=advHit;advHit=function(f,h){if(!isAdv()||!f||f.mi==null||!f.act||!f.act.def)return _ah.apply(this,arguments);const d=f.act.def;
+  const before=new Map();for(const q of ADV.en)if(!q.dead)before.set(q,q.hp);
+  if(d._art){const k=f._skKind;f._skKind={kind:'wp',art:true};const r=_ah.apply(this,arguments);f._skKind=k;const list=[];for(const [q,hp] of before){const dd=hp-q.hp;if(dd>0)list.push([q,dd]);}
+   const last=h===d.hits[d.hits.length-1];if(list.length){const w=cur(f);if(last)rune(f,list,w.key);const L=WL(w.key);L.xp+=list.length;}
+   if(last&&f.act&&WS(f).artLink){f.act.t+=WS(f).artLink;WS(f).artLink=0;}return r;}
+  const reg=d.jab||d===JAB||(typeof JABS!=='undefined'&&JABS[f.mi]===d);const r=_ah.apply(this,arguments);if(!reg)return r;
+  const list=[];for(const [q,hp] of before){const dd=hp-q.hp;if(dd>0)list.push([q,dd]);}const s=WS(f);
+  if(!list.length){s.streak=0;return r;}
+  let add=1;try{const st=A.skill.effSt();if(st&&st.streak)add+=st.streak;}catch(er){}s.streak+=add;s.last=t();s.lastHit=t();s.lastHitE=list[0][0];s.lastHitD=list[0][1];
+  const w=cur(f);if(w&&!w.locked&&s.streak>=needN(f)&&s.cd<=0)fire(f);return r;};}
+/* inputs: hold GUARD + JAB = Art I · hold GUARD + DASH = Art II (without Art II the dash is normal) */
+if(typeof doMove==='function'){const _dm=doMove;doMove=function(f,i,force){if(i<0&&!force&&isAdv()&&f&&typeof IN!=='undefined'&&IN[f.side]&&IN[f.side].block&&!f.act){if(useArt(f,1))return true;}return _dm.apply(this,arguments);};}
+if(typeof tryDash==='function'){const _td=tryDash;tryDash=function(f,I){if(isAdv()&&f&&I&&I.block&&!f.act&&useArt(f,2))return true;const s=f&&f._wp;
+  if(isAdv()&&f&&s&&s.out&&cur(f).def.kind==='throw'){/* dash-to-weapon */const r=_td.apply(this,arguments);if(r){const dx=s.out.x-f.x,dz=s.out.z-f.z,m=Math.hypot(dx,dz)||1;const sp=Math.hypot(f.dashVx||0,f.dashVz||0);f.dashVx=dx/m*sp;f.dashVz=dz/m*sp;f.ang=Math.atan2(dx,dz);const e=nnodes(f);if(e.after){const list=[];for(const q of foes(f,1.6))wHit(f,q,e.after,{},list);if(list.length)afterHits(f,cur(f),list,false);}}return r;}
+  return _td.apply(this,arguments);};}
+/* block counter (Ice Gauntlets: guard within 0.25 s of the hit) + streak breaks when you get hit */
+if(typeof advHurt==='function'){const _hu=advHurt;advHurt=function(f,dmg,en){const was=isAdv()&&f&&f.block&&!f.act;const r=_hu.apply(this,arguments);if(!isAdv()||!f)return r;
+  try{const s=WS(f);if(!was)s.streak=0;else{const w=cur(f);const e=nnodes(f);if(w&&w.def.prop==='counter'&&en&&!en.dead&&en.hp!=null&&A.skill&&A.skill.SKX&&t()-A.skill.SKX(f).guardT<=.25+(e.ctrWin||0)&&t()-(s.ctrT||-9)>.6){s.ctrT=t();const list=[];wHit(f,en,8,{},list);if(e.ctrFreeze&&!boss(en))en.stun=Math.max(en.stun||0,e.ctrFreeze);if(list.length)afterHits(f,w,list,false);}}}catch(er){}return r;};}
+/* FORM key: P1 G, P2 ' (Quote) */
+const FORMK=['KeyG','Quote'];
+addEventListener('keydown',ev=>{if(ev.repeat||!isAdv()||G.ui==='menu'||G.phase!=='fight')return;const p=FORMK.indexOf(ev.code);if(p<0)return;if(p===1&&!G.advP2)return;const L=(()=>{try{return advActive();}catch(er){return F;}})();const f=L.find(x=>x&&x.side===p);if(!f)return;ev.preventDefault();formPress(f);});
+/* ambient: cooldowns, streak timeout, saber orbit, chakram return, drops */
+let dropT=0;
+if(typeof advAmbient==='function'){const _aa=advAmbient;advAmbient=function(dt){_aa.apply(this,arguments);if(!isAdv())return;const d=Math.min(.1,dt||0);
+  try{dropT-=d;if(dropT<=0){dropT=1;checkDrops();}
+   for(const f of F){if(!f||!f._wp)continue;const s=f._wp;s.cd=Math.max(0,s.cd-d);s.a1=Math.max(0,s.a1-d);s.a2=Math.max(0,s.a2-d);if(s.streak&&t()-s.last>1.2)s.streak=0;
+    if(s.orbit>0){fxInit();s.orbit-=d;s.orbitT+=d;const a=s.orbitT*7;const ox=f.x+Math.sin(a)*1.6,oz=f.z+Math.cos(a)*1.6;if(FXR){FXR.saber.visible=true;FXR.saber.position.set(ox,1.1,oz);FXR.saber.rotation.y=a+Math.PI/2;}
+     const w=cur(f);const list=[];for(const q of foes(f,1.0,ox,oz)){const lt=s.orbitHit.get(q)||-9;if(t()-lt>=.5){s.orbitHit.set(q,t());wHit(f,q,3,{nostun:true,kb:.1},list);}}if(list.length)afterHits(f,w,list,false);
+     if(s.orbit<=0&&FXR)FXR.saber.visible=false;}
+    if(s.out){s.out.t-=d;if(FXR){FXR.chak.visible=true;FXR.chak.rotation.y+=d*12;}if(s.out.t<=0)recall(f);}}}catch(e){if(!fire.err){fire.err=e;console.warn('[weapons]',e);}}};}
+/* leaving the adventure hides the pooled FX */
+if(typeof advExit==='function'){const _ax=advExit;advExit=function(){if(FXR){FXR.saber.visible=false;FXR.chak.visible=false;}for(const f of F)if(f&&f._wp){f._wp.out=null;f._wp.orbit=0;}return _ax.apply(this,arguments);};}
+/* ---------- loadout UI tabs (WEAPON / RUNES) ---------- */
+function uiHtml(f,isRunes,add,forgeAt){const U=A.spiritsUI;const w=cur(f);let h='';
+ if(!isRunes){const e=nnodes(f);h+='<div class="sec">EQUIPPED · '+w.def.name+' · '+(w.def.type||'').toUpperCase()+' · LV '+WL(w.key).lv+' · N '+needN(f)+' · cd '+cdOf(f).toFixed(1)+' s'+(w.locked?' · '+w.locked:'')+'</div>';
+  h+='<div class="pv">Fires by itself after <b>'+needN(f)+'</b> regular hits in a row'+(w.def.kind==='form'?' · <b>FORM</b> (G / \u2019 / D-pad →) swaps: '+w.def.forms.map((x,i)=>i===formOf(f)?'<b>'+x+'</b>':x).join(' / ')+' · a swap right after a hit = Form Break':'')+(w.def.kind==='throw'?' · <b>FORM</b> recalls it · dash flies to it':'')+
+   '<br>Art I <b>'+w.def.art[0]+'</b> (hold S + W · LB + Ⓐ) '+(artOpen(f,1)?'✓':'🔒 spend 1 point in this weapon\u2019s tree (K)')+' · Art II <b>'+w.def.art[1]+'</b> (hold S + Space · LB + Ⓑ) '+(artOpen(f,2)?'✓':'🔒 reach row 3 of '+(w.def.type||'').toUpperCase()+' mastery')+'</div>';
+  h+='<div class="sec">ARMOURY · '+(forgeAt?'✓ forge here ('+forgeAt+')':'forge at a kiosk or a shrine')+'</div><div class="row">';
+  const sk=sigKey(f.mi);h+=add('<b>'+defOf(sk).name+'</b><span>Aura Burst r 2.5 m · N 5 · cd 8 s</span>',w.key===sk?'on':'',()=>{equip(f,null);U.msg='Equipped signature gear';},'気',colOf2(f));
+  for(const id in DEF){if(id==='sig')continue;const d=DEF[id];const own=D().own[id];const src=d.from?'forge: '+S.sp(d.from).name+' core + 40 coins':'drop: '+d.drop;
+   if(own)h+=add('<b>'+d.name+'</b><span>'+d.type+' · N '+d.N+' · cd '+d.cd+' s · '+d.prop+' · LV '+WL(id).lv+'</span>',w.key===id?'on':'',()=>{equip(f,id);U.msg='Equipped '+d.name;},d.kj,d.col);
+   else{const can=d.from&&S.D().cores.some(c=>c.sp===d.from&&!S.holder(c.id));h+=add('<b>'+(can?'⚒ FORGE ':'🔒 ')+d.name+'</b><span>'+src+'</span>',can&&forgeAt?'':'off',()=>{const r=forge(f,id);U.msg=r.err||('⚒ FORGED '+d.name+' · equip it here');if(r.ok)try{sfx('ko');}catch(er){}},d.kj,d.col);}}
+  h+='</div>';}
+ else{const n=sockets(f,w.key),on=sockOf(w.key);h+='<div class="sec">RUNES · '+w.def.name+' · sockets '+on.length+' / '+n+' · runes drop from secret spots (1 per 3) and side quests (1 per 2)</div><div class="row">';
+  for(let i=0;i<n;i++){const r=on[i];h+=add(r?'<b>'+RUNES[r][0]+'</b><span>'+RUNES[r][2]+' · Enter: remove</span>':'<b>empty socket</b><span>pick a rune below</span>',r?'on':'',()=>{if(r){on.splice(i,1);A.save.dirty('rune');U.msg='Removed '+RUNES[r][0];}},r?RUNES[r][1]:'◇',0xffd040);}
+  h+='</div><div class="sec">YOUR RUNES</div><div class="row">';const own=runesOwned();let any=0;
+  for(const r of RUNE_ORDER){const tot=own[r]||0;if(!tot)continue;any=1;const free=runeFree(r);h+=add('<b>'+RUNES[r][0]+' ×'+free+'/'+tot+'</b><span>'+RUNES[r][2]+'</span>',free>0&&on.length<n?'':'off',()=>{if(free<=0){U.msg='All '+RUNES[r][0]+' runes are socketed';return;}if(on.length>=n){U.msg='No free socket (2nd socket: weapon LV 5 or the Rune socket node)';return;}on.push(r);A.save.dirty('rune');U.msg='Socketed '+RUNES[r][0];},RUNES[r][1],0xffd040);}
+  if(!any)h+='<div class="pv">No runes yet. Find secret spots (✦) and clear side quests (⚑).</div>';h+='</div>';}
+ return h;}
+A.weapons={DEF,RUNES,cur,fire,recall,formPress,useArt,artOpen,artDef,forge,equip,needN,cdOf,WS,WL,runesOwned,runesOn,sockOf,sockets,uiHtml,D,formOf,checkDrops,runeCount};
+})();
+
+</script>
+<script>/* adv2_tech.js */
+/* ===== ADV2 · FIGHTING TECHNIQUES 技 (Deploy F2): the regular-hit chain on JAB, per SPIRITS.md §4 =====
+   Adventure only. Each technique = chain length per tier, speed (s per hit), reach, property. Damage is normalised to the
+   fighter's own jab DPS × tier (×1 / ×1.1 / ×1.2), so tier III stays ≤ +20% over the default jab (§9).
+   Passive techniques (stance / dash / style / finisher) are always on once learned. */
+(function(){'use strict';const A=window.ADV2;if(!A||!A.save||typeof jabFor!=='function'||typeof G==='undefined')return;
+const isAdv=()=>typeof ADV!=='undefined'&&ADV.on&&G.mode==='adv';const T=()=>(A.simT?A.simT():G.t);
+const W2=()=>(A.save.data&&A.save.data.world)||{};
+/* id: [len I,II,III], speed, reach, props(tier,idx,last) -> effect object | null, kind */
+const CH={neon_boxing:{len:[3,4,5],sp:.26,rg:1.8,pr:(t,i,l)=>t>=3&&l?{stun:.4}:null},
+ crane_stance:{len:[2,3,3],sp:.40,rg:2.8,pr:(t,i,l)=>t>=3&&i===1?{hop:1}:null},
+ tide_palm:{len:[3,3,4],sp:.33,rg:2.2,pr:(t,i,l)=>Object.assign({push:1},t>=3&&l?{splash:1.5}:{})},
+ sand_viper:{len:[3,4,4],sp:.30,rg:2.4,pr:(t,i,l)=>t>=2&&l?{stun:.35}:null},
+ frost_waltz:{len:[2,3,4],sp:.36,rg:2.3,kind:'aoe',pr:()=>null},
+ iron_body:{len:[2,2,3],sp:.45,rg:2.0,pr:(t,i)=>i===1?{armor:.2}:null},
+ tiger_claw:{len:[3,4,4],sp:.28,rg:1.9,pr:(t,i,l)=>t>=3&&l?{bleed:1,bleedN:2}:null},
+ rotor_kata:{len:[4,5,5],sp:.24,rg:2.1,kind:'aoe',pr:()=>null},
+ angler_hook:{len:[2,3,3],sp:.38,rg:3.0,pr:()=>({pull:1.5})},
+ prism_palm:{len:[3,3,4],sp:.32,rg:2.2,pr:(t,i)=>i===2?{stun:.2}:null},
+ regent_antler:{len:[2,3,4],sp:.40,rg:2.6,pr:()=>({stun:.5})},
+ null_kata:{len:[4,5,6],sp:.27,rg:2.3,pr:()=>({drain:1})},
+ umbra_weave:{len:[3,4,4],sp:.29,rg:2.1,pr:(t,i)=>i===0?{blink:1}:null},
+ iron_sage:{len:[4,4,5],sp:.30,rg:2.2,pr:(t,i,l)=>Object.assign(i===1?{armor:.2}:{},l?{stun:.4}:{})}};
+const TMUL=[1,1,1.1,1.2];
+const has=id=>{const w=W2();return !!(w.tech&&w.tech[id]);};
+const equipped=()=>{const w=W2();const id=w.equipTech;return id&&CH[id]&&w.tech&&w.tech[id]?id:null;};
+function tierOf(id){const w=W2();let t=Math.max(1,Math.min(3,(w.tech[id]&&w.tech[id].tier)||1));try{const st=A.skill&&A.skill.effSt();if(st&&st.seed)t=3;}catch(e){}return t;}
+const CACHE={};
+/* integer per-hit damage chosen so the chain's real damage (after perk + level rounding) stays within tier × the default jab DPS */
+function effMul(f){const a=f.act;f.act=null;let m=1;try{m=A.dmgMul(f);}catch(e){}f.act=a;let pv=1;try{pv=perkVal(f,'dmg');}catch(e){}return [pv,m];}
+function chainDef(f,id,tier,i){const [pv,m]=effMul(f);const key=f.mi+':'+id+':'+tier+':'+pv.toFixed(3)+':'+m.toFixed(3);let L=CACHE[key];
+ if(!L){const c=CH[id],len=c.len[tier-1];const base0=(typeof JABS!=='undefined'&&JABS[f.mi])||JAB;const eff=x=>Math.round(Math.round(x*pv)*m);
+  const bDmg=base0.hits.reduce((a,h)=>a+eff(h.dmg),0),bCyc=base0.dur+1/60;const cyc=c.sp+1/60;const tgt=bDmg/bCyc*TMUL[tier]*cyc;let cum=0;L=[];
+  for(let k=0;k<len;k++){const base=(k%2&&base0.alt)?base0.alt:base0;const sc=c.sp/base.dur;let x=1;while(cum+eff(x+1)<=tgt*(k+1)+1e-6)x++;cum+=eff(x);const h0=base.hits[0];
+   const d=Object.assign({},base,{name:techNameOf(id)+' '+(k+1),dur:c.sp,jab:true,_tech:{id,i:k,last:k===len-1,tier},keys:base.keys.map(([q,p])=>[q*sc,p]),hits:[Object.assign({},h0,{t:Math.min(c.sp*.6,h0.t*sc),dmg:x,range:c.rg})]});
+   if(c.kind)d.kind=c.kind;delete d.alt;L.push(d);}CACHE[key]=L;}
+ return L[Math.min(i,L.length-1)];}
+function techNameOf(id){try{return A.world2.TECH[id][0];}catch(e){return id;}}
+const TC=f=>f._tc||(f._tc={i:-1,t:-9,still:0,lx:0,lz:0,fin:-9,n:0});
+const _jf=jabFor;jabFor=function(f){if(!isAdv()||!f)return _jf.apply(this,arguments);const id=equipped();if(!id)return _jf.apply(this,arguments);
+ const c=CH[id],tier=tierOf(id),len=c.len[tier-1],s=TC(f),now=T();const gap=has('endless_current')?0:.15;
+ const prev=chainDef(f,id,tier,Math.max(0,s.i));const win=prev.dur+.35+(s.i===len-1?gap:0);
+ let i=(now-s.t<win)?(s.i+1)%len:0;if(s.i===len-1&&now-s.t<prev.dur+gap&&gap)i=0;
+ s.i=i;s.t=now;s.n=i===0?1:s.n+1;const d=chainDef(f,id,tier,i);
+ const p=c.pr(tier,i,i===len-1);if(p&&p.armor)f.iframe=Math.max(f.iframe||0,p.armor);
+ if(p&&p.blink){const fx=Math.sin(f.ang||0),fz=Math.cos(f.ang||0);f.x+=fx;f.z+=fz;}
+ return d;};
+/* property + passive damage on regular hits */
+const _dm=A.dmgMul;A.dmgMul=function(f){let m=_dm(f);if(!isAdv()||!f||!f.act||!f.act.def)return m;const d=f.act.def;if(!(d.jab||d===JAB||(typeof JABS!=='undefined'&&JABS[f.mi]===d)))return m;const s=TC(f);
+ if(has('still_water')&&s.still>=.6&&!s.swUsed){m*=1.5;s.swArm=1;}
+ if(has('ember_heart')&&f.hp<f.hpMax*.2)m*=1.15;
+ if(has('secret_finisher')&&d._tech&&s.n===6&&T()-(s.sfT||-9)>8){m*=1.8;s.sfArm=1;}
+ return m;};
+if(typeof advHit==='function'){const _ah=advHit;advHit=function(f,h){if(!isAdv()||!f||f.mi==null||!f.act)return _ah.apply(this,arguments);const d=f.act.def;const reg=d&&(d.jab||d===JAB);
+  if(!reg)return _ah.apply(this,arguments);const before=new Map();for(const q of ADV.en)if(!q.dead)before.set(q,q.hp);const s=TC(f);
+  const r=_ah.apply(this,arguments);const list=[];for(const [q,hp] of before){const dd=hp-q.hp;if(dd>0)list.push([q,dd]);}
+  if(s.swArm){s.swArm=0;s.still=0;}if(s.sfArm){s.sfArm=0;s.sfT=T();}
+  if(!list.length)return r;
+  let e={};if(d._tech){const c=CH[d._tech.id];e=Object.assign({},c.pr(d._tech.tier,d._tech.i,d._tech.last)||{});
+   const st=A.skill&&A.skill.effSt();if(d._tech.last&&st){if(st.fin)for(const k in e)if(typeof e[k]==='number'&&k!=='splash'&&k!=='bleedN')e[k]*=2;if(st.gbreak)e.gb=st.gbreak;}if(d._tech.last)s.fin=T();if(A.skill&&A.skill.SKX&&d._tech.last)A.skill.SKX(f).finT=T();}
+  else{const st=A.skill&&A.skill.effSt();if(st&&st.gbreak)e.gb=st.gbreak;if(st&&st.fin&&e.gb)e.gb*=2;}
+  if(has('ember_heart')&&f.hp<f.hpMax*.2)e.bleed=(e.bleed||0)+1;
+  const fx=Math.sin(f.ang||0),fz=Math.cos(f.ang||0);
+  for(const [q,dd] of list){if(q.dead)continue;const boss=!!(q.boss2||q.type==='B'||q.type==='N');
+   if(e.push&&!boss){q.x+=fx*e.push;q.z+=fz*e.push;}
+   if(e.gb)try{stagger(q,e.gb);}catch(er){q.stun=Math.max(q.stun||0,e.gb);}
+   if(e.splash){for(const o of ADV.en)if(o!==q&&!o.dead&&!before.has(o)===false&&Math.hypot(o.x-q.x,o.z-q.z)<e.splash&&!list.some(z=>z[0]===o))try{A.wDmg&&A.wDmg(f,o,Math.max(1,Math.round(dd*.5)),{kb:.2,nostun:true});}catch(er){}}}
+  if(e.hop){f.vx=-fx*4;f.vz=-fz*4;}
+  const pass={};if(e.stun)pass.stun=e.stun;if(e.pull)pass.pull=e.pull;if(e.drain)pass.drain=e.drain;if(e.bleed)pass.bleed=e.bleed;
+  if(Object.keys(pass).length&&A.skill&&A.skill.onLanded)A.skill.onLanded(f,pass,list,'tech');
+  return r;};}
+/* still-water stance clock + void flicker / mirror step on dash */
+if(typeof advAmbient==='function'){const _aa=advAmbient;advAmbient=function(dt){_aa.apply(this,arguments);if(!isAdv())return;for(const f of F){if(!f)continue;const s=TC(f);const mv=Math.hypot(f.x-s.lx,f.z-s.lz);s.lx=f.x;s.lz=f.z;s.still=(mv<.002&&!f.act)?s.still+(dt||0):(f.act&&s.still>=.6?s.still:0);}};}
+if(typeof tryDash==='function'){const _td=tryDash;tryDash=function(f){const r=_td.apply(this,arguments);if(r&&isAdv()&&f){TC(f).dashT=T();if(has('void_flicker')){f.iframe=Math.max(f.iframe||0,(f.dashDur||.2)+.25);}}return r;};}
+if(typeof advHurt==='function'){const _hu=advHurt;advHurt=function(f,dmg,en){const mirror=isAdv()&&f&&has('mirror_step')&&f.iframe>0&&T()-(TC(f).dashT||-9)<.25&&en&&!en.dead&&en.hp!=null&&T()-(TC(f).msT||-9)>1;
+  const r=_hu.apply(this,arguments);if(mirror){TC(f).msT=T();try{A.wDmg&&A.wDmg(f,en,6,{kb:.4});}catch(e){}}return r;};}
+A.tech={CH,equipped,tierOf,chainDef,has,TC};
+})();
+
+</script>
 <script>/* adv2_f1.js */
 /* ---- Neon Brawlers · Deploy F1: in-game PAUSE menu with RESUME / close, and a findable Adventure MAP (Neko-Rail) ----
    MENU button / Esc / controller Start during a game -> PAUSE card: ▶ RESUME (Esc · Ⓑ · Start), 🗺 MAP · NEKO-RAIL (T), controls, fullscreen, new game.
@@ -13864,10 +14365,10 @@ showMenu=function(){const L=F1.live,inGame=!!(L&&G.ov&&(G.phase||typeof ADV!=='u
  const h1=card.querySelector('h1');if(h1)h1.insertAdjacentHTML('afterend','<div class="f1tag">PAUSED · '+(adv?(L.advP2?'ADVENTURE CO-OP':'ADVENTURE SOLO'):L.mode==='vs1'?'VERSUS CPU':'2 PLAYERS')+'</div>');
  const sub=card.querySelector('.sub');if(sub)sub.remove();
  const first=card.querySelector('button.mb');
- first.insertAdjacentHTML('beforebegin','<button class="mb big2 f1r" id="f1Res" type="button">▶ RESUME<kbd>Esc</kbd></button>'+(adv?'<button class="mb f1m" id="f1Map" type="button">🗺 MAP · NEKO-RAIL<kbd>T</kbd></button>'+(A.skill?'<button class="mb f1s" id="f1Sk" type="button">✦ SKILL TREES<kbd>K</kbd><kbd>Ⓨ</kbd></button>':''):'')+'<div class="f1sep">NEW GAME</div>');
+ first.insertAdjacentHTML('beforebegin','<button class="mb big2 f1r" id="f1Res" type="button">▶ RESUME<kbd>Esc</kbd></button>'+(adv?'<button class="mb f1m" id="f1Map" type="button">🗺 MAP · NEKO-RAIL<kbd>T</kbd></button>'+(A.skill?'<button class="mb f1s" id="f1Sk" type="button">✦ SKILL TREES<kbd>K</kbd><kbd>Ⓨ</kbd></button>':'')+(A.spiritsUI?'<button class="mb f1s" id="f1Lo" type="button">魂 LOADOUT<kbd>J</kbd><kbd>Ⓧ</kbd></button>':''):'')+'<div class="f1sep">NEW GAME</div>');
  card.insertAdjacentHTML('afterbegin','<button class="f1x" id="f1X" type="button" title="Close menu (Esc · controller B / Start)" aria-label="Close">✕</button>');
- const note=card.querySelector('.note');if(note)note.innerHTML='Esc · controller Ⓑ / Start = resume'+(adv?' · T / View = map · K / Ⓨ = skill trees':'')+(note.textContent.indexOf('P1:')>=0?'<br>'+note.innerHTML.replace(' · Esc restarts',''):'');
- card.querySelector('#f1Res').onclick=resume;card.querySelector('#f1X').onclick=resume;const m=card.querySelector('#f1Map');if(m)m.onclick=()=>{resume();openMap();};const sk=card.querySelector('#f1Sk');if(sk)sk.onclick=()=>{A.skill.openSk();};
+ const note=card.querySelector('.note');if(note)note.innerHTML='Esc · controller Ⓑ / Start = resume'+(adv?' · T / View = map · K / Ⓨ = skill trees · J / Ⓧ = loadout':'')+(note.textContent.indexOf('P1:')>=0?'<br>'+note.innerHTML.replace(' · Esc restarts',''):'');
+ card.querySelector('#f1Res').onclick=resume;card.querySelector('#f1X').onclick=resume;const m=card.querySelector('#f1Map');if(m)m.onclick=()=>{resume();openMap();};const sk=card.querySelector('#f1Sk');if(sk)sk.onclick=()=>{A.skill.openSk();};const lo=card.querySelector('#f1Lo');if(lo)lo.onclick=()=>{A.spiritsUI.openLo();};
  return r;};
 try{if(window.__game)__game.showMenu=showMenu;}catch(e){}
 function resume(){const L=F1.live;if(!L||!F1.resumable)return false;F1.resumable=false;
@@ -13883,7 +14384,7 @@ addEventListener('keydown',e=>{if(e.defaultPrevented)return;const c=e.code;
   if(c==='KeyT'&&F1.live&&F1.live.mode==='adv'){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat){resume();openMap();}return;}return;}
  if(c==='Escape'&&!e.repeat&&!G.ui&&isAdv()&&!G.paused&&!otherOverlay()&&F1.live){e.preventDefault();e.stopImmediatePropagation();showMenu();}},true);
 /* help line: Adventure Esc = pause */
-if(typeof updHelp==='function'){const _uh=updHelp;updHelp=function(){const r=_uh.apply(this,arguments);try{const h=document.getElementById('help');if(h&&bindSet()==='adv')h.textContent=h.textContent.replace(/Esc restart$/,'Esc pause · T map · K skills');}catch(e){}return r;};try{updHelp();}catch(e){}}
+if(typeof updHelp==='function'){const _uh=updHelp;updHelp=function(){const r=_uh.apply(this,arguments);try{const h=document.getElementById('help');if(h&&bindSet()==='adv')h.textContent=h.textContent.replace(/Esc restart$/,'Esc pause · T map · K skills · J loadout · F bind · G form');}catch(e){}return r;};try{updHelp();}catch(e){}}
 /* ---------- MAP button NEW badge + pointer hint ---------- */
 let hint=null,lastK='';
 function newRegion(){const w=W();if(!w||!w.ORDER)return null;const d=A.save&&A.save.data;const wv=(d&&d.world&&d.world.visits)||{};for(const id of w.ORDER){if(w.unlocked(id)&&!wv[id]&&w.id!==id){let n=id;try{n=A.regions&&A.regions.get?A.regions.get(id).name:id;}catch(e){}return {id,name:(n||id).toUpperCase()};}}return null;}
