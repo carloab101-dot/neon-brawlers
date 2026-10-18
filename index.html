@@ -14288,7 +14288,7 @@ const _jf=jabFor;jabFor=function(f){if(!isAdv()||!f)return _jf.apply(this,argume
  const prev=chainDef(f,id,tier,Math.max(0,s.i));const win=prev.dur+.35+(s.i===len-1?gap:0);
  let i=(now-s.t<win)?(s.i+1)%len:0;if(s.i===len-1&&now-s.t<prev.dur+gap&&gap)i=0;
  s.i=i;s.t=now;s.n=i===0?1:s.n+1;const d=chainDef(f,id,tier,i);
- const p=c.pr(tier,i,i===len-1);if(p&&p.armor)f.iframe=Math.max(f.iframe||0,p.armor);
+ const p=c.pr(tier,i,i===len-1,f);if(p&&p.armor)f.iframe=Math.max(f.iframe||0,p.armor);
  if(p&&p.blink){const fx=Math.sin(f.ang||0),fz=Math.cos(f.ang||0);f.x+=fx;f.z+=fz;}
  return d;};
 /* property + passive damage on regular hits */
@@ -14302,7 +14302,7 @@ if(typeof advHit==='function'){const _ah=advHit;advHit=function(f,h){if(!isAdv()
   const r=_ah.apply(this,arguments);const list=[];for(const [q,hp] of before){const dd=hp-q.hp;if(dd>0)list.push([q,dd]);}
   if(s.swArm){s.swArm=0;s.still=0;}if(s.sfArm){s.sfArm=0;s.sfT=T();}
   if(!list.length)return r;
-  let e={};if(d._tech){const c=CH[d._tech.id];e=Object.assign({},c.pr(d._tech.tier,d._tech.i,d._tech.last)||{});
+  let e={};if(d._tech){const c=CH[d._tech.id];e=Object.assign({},c.pr(d._tech.tier,d._tech.i,d._tech.last,f)||{});
    const st=A.skill&&A.skill.effSt();if(d._tech.last&&st){if(st.fin)for(const k in e)if(typeof e[k]==='number'&&k!=='splash'&&k!=='bleedN')e[k]*=2;if(st.gbreak)e.gb=st.gbreak;}if(d._tech.last)s.fin=T();if(A.skill&&A.skill.SKX&&d._tech.last)A.skill.SKX(f).finT=T();}
   else{const st=A.skill&&A.skill.effSt();if(st&&st.gbreak)e.gb=st.gbreak;if(st&&st.fin&&e.gb)e.gb*=2;}
   if(has('ember_heart')&&f.hp<f.hpMax*.2)e.bleed=(e.bleed||0)+1;
@@ -14312,7 +14312,7 @@ if(typeof advHit==='function'){const _ah=advHit;advHit=function(f,h){if(!isAdv()
    if(e.gb)try{stagger(q,e.gb);}catch(er){q.stun=Math.max(q.stun||0,e.gb);}
    if(e.splash){for(const o of ADV.en)if(o!==q&&!o.dead&&!before.has(o)===false&&Math.hypot(o.x-q.x,o.z-q.z)<e.splash&&!list.some(z=>z[0]===o))try{A.wDmg&&A.wDmg(f,o,Math.max(1,Math.round(dd*.5)),{kb:.2,nostun:true});}catch(er){}}}
   if(e.hop){f.vx=-fx*4;f.vz=-fz*4;}
-  const pass={};if(e.stun)pass.stun=e.stun;if(e.pull)pass.pull=e.pull;if(e.drain)pass.drain=e.drain;if(e.bleed)pass.bleed=e.bleed;
+  const pass={};if(e.stun)pass.stun=e.stun;if(e.pull)pass.pull=e.pull;if(e.drain)pass.drain=e.drain;if(e.bleed)pass.bleed=e.bleed;if(e.chain)pass.chain=e.chain;
   if(Object.keys(pass).length&&A.skill&&A.skill.onLanded)A.skill.onLanded(f,pass,list,'tech');
   return r;};}
 /* still-water stance clock + void flicker / mirror step on dash */
@@ -14321,6 +14321,98 @@ if(typeof tryDash==='function'){const _td=tryDash;tryDash=function(f){const r=_t
 if(typeof advHurt==='function'){const _hu=advHurt;advHurt=function(f,dmg,en){const mirror=isAdv()&&f&&has('mirror_step')&&f.iframe>0&&T()-(TC(f).dashT||-9)<.25&&en&&!en.dead&&en.hp!=null&&T()-(TC(f).msT||-9)>1;
   const r=_hu.apply(this,arguments);if(mirror){TC(f).msT=T();try{A.wDmg&&A.wDmg(f,en,6,{kb:.4});}catch(e){}}return r;};}
 A.tech={CH,equipped,tierOf,chainDef,has,TC};
+})();
+
+</script>
+<script>/* adv2_f3.js */
+/* ===== ADV2 · DEPLOY F3: the 4 missing secret techniques (SPIRITS.md §5) =====
+   #1 Petal Step   · Sakura: run the circuit loop without touching a kerb and beat the gold time 1:12.40 → Petal Step style
+                     (chain: every hit can dash-cancel; dashes leave petals that slow enemies 0.5 s)
+   #8 Petal Calm   · Sakura: stand still in the shrine circle through the whole petal storm (10 s) → Calm Stance
+                     (a perfect guard heals 3 HP and refunds 0.5 s of special cooldowns)
+   #14 Night Walker· night branch: reach the hidden alcove in the Grayscale Spire at night (your clock 20:00–05:59) → Umbra Weave
+                     (the all-5-secrets branch already exists in adv2_world.js)
+   #16 Fusion Pair · equip two spirits of opposite elements and win 10 fights with both equipped → Twin Element Style
+                     (chain alternates the two elements)
+   Adventure only. Versus / Boxing untouched; sims stay identical (never touches rnd()). */
+(function(){'use strict';const A=window.ADV2;const W=A&&A.world2;if(!A||!W||!W.TECH||!W.awaken||typeof G==='undefined')return;
+const isAdv=()=>typeof ADV!=='undefined'&&ADV.on&&G.mode==='adv';const TT=typeof T!=='undefined'?T:THREE;
+const W2=()=>(A.save.data&&A.save.data.world)||{};const has=id=>{const w=W2();return !!(w.tech&&w.tech[id]);};
+const live=()=>{try{return advActive().filter(f=>f&&!f.ko);}catch(e){return F.filter(Boolean);}};
+const toast=(a,b)=>{try{A.toast&&A.toast(a,false,b);}catch(e){}};
+Object.assign(W.TECH,{petal_step:['Petal Step','花','TECHNIQUE','every hit can dash-cancel · dashes leave petals that slow enemies 0.5 s','Petal Step'],
+ petal_calm:['Calm Stance','凪','STANCE','a perfect guard heals 3 HP and refunds 0.5 s of special cooldowns','Petal Calm'],
+ twin_element:['Twin Element Style','双','TECHNIQUE','your chain alternates the elements of your two opposite spirits','Fusion Pair']});
+const F3=A.f3={race:null,calm:{t:0,storm:0,last:null},pair:{inFight:false,kills:0},night:null,log:[]};
+/* ---------- techniques: chains for the tech module ---------- */
+const ELFX={fire:{bleed:1},ice:{stun:.35},storm:{chain:.35},earth:{stun:.3},light:{stun:.25},void:{drain:1}};
+function pairEls(f){try{const els=A.spirits.equipped(f).map(c=>c.el);for(const a of els){const b=A.spirits.ELEM_OPP[a];if(els.includes(b))return [a,b];}}catch(e){}return null;}
+if(A.tech&&A.tech.CH){A.tech.CH.petal_step={len:[3,3,4],sp:.30,rg:2.0,pr:()=>null};
+ A.tech.CH.twin_element={len:[2,3,4],sp:.32,rg:2.2,pr:(t,i,l,f)=>{const p=f&&pairEls(f);if(!p)return null;return Object.assign({},ELFX[p[i%2]]||{});}};}
+/* Petal Step: a landed chain hit can be cancelled into a dash; dashes leave a petal trail (slow 0.5 s) */
+const TRAIL=[];
+if(typeof tryDash==='function'){const _td=tryDash;tryDash=function(f,I){if(isAdv()&&f&&f.act&&f.act.def&&f.act.def._tech&&f.act.def._tech.id==='petal_step'&&W2().equipTech==='petal_step'&&f.act.hitDone&&f.act.hitDone[0]){f.act=null;}
+  const x0=f&&f.x,z0=f&&f.z;const r=_td.apply(this,arguments);if(r&&isAdv()&&f&&W2().equipTech==='petal_step'){TRAIL.push({f,x:x0,z:z0,t:1.6,n:0});petals(x0,z0);}return r;};}
+function petals(x,z){try{burst(new TT.Vector3(x,.6,z),14,[0xffb7d8,0xffffff,0xff6fae],2,{life:.9,s0:.07,grav:-1.5});}catch(e){}}
+/* Calm Stance: perfect guard → +3 HP, −0.5 s on special cooldowns */
+const perfect=f=>!!(f&&(f.perfectBlock||(A.skillPerfect&&A.skillPerfect(f))));
+if(typeof advHurt==='function'){const _hu=advHurt;advHurt=function(f,dmg,en){const pf=isAdv()&&f&&has('petal_calm')&&f.block&&!f.act&&perfect(f)&&(!f._calmT||W.t-f._calmT>.4);const r=_hu.apply(this,arguments);
+  if(pf){f._calmT=W.t;if(!(typeof perkNoHeal==='function'&&perkNoHeal(f)))f.hp=Math.min(f.hpMax,f.hp+3);for(let i=0;i<3;i++)f.cd[i]=Math.max(0,f.cd[i]-.5);try{popDmg(f.chest(),'CALM +3',false);}catch(e){}G.calmProcs=(G.calmProcs||0)+1;}return r;};}
+/* ---------- Sakura geometry: the circuit loop (same math as the region builder) ---------- */
+const C0={x:10,z:-255};const loopP=t=>{const c=Math.cos(t),s=Math.sin(t);return [C0.x+95*Math.sign(c)*Math.abs(c)**(2/3),C0.z+40*Math.sign(s)*Math.abs(s)**(2/3)];};
+const ROAD=[];for(let k=0;k<720;k++)ROAD.push(loopP(k/720*Math.PI*2));
+function nearestK(x,z,hint){let best=-1,bd=1e9;const lo=hint==null?0:hint-40,hi=hint==null?720:hint+40;for(let k=lo;k<hi;k++){const q=ROAD[(k+720)%720];const d=(q[0]-x)**2+(q[1]-z)**2;if(d<bd){bd=d;best=(k+720)%720;}}return [best,Math.sqrt(bd)];}
+const START_K=540;/* t = 3π/2: the south straight, under the start arch */const HALF=7;
+/* gold time is fair per fighter: 440 m at your own walk speed (the centre line is 467 m) → cut corners inside the kerbs and dash */
+const spd=f=>{try{return FSTAT.advWalk*fWalk(f.mi)/1.7*(typeof perkVal==='function'?perkVal(f,'speed'):1);}catch(e){return 3.3;}};
+const goldFor=f=>Math.round(440/Math.max(1,spd(f))*10)/10;const near20=f=>ADV.en.some(e=>!e.dead&&e.hp>0&&e.aggro&&Math.hypot(e.x-f.x,e.z-f.z)<20);
+/* light markers (math shapes): start gate ring, calm circle, alcove moon */
+let MK=null;function markers(){if(MK||typeof scene==='undefined')return MK;const mat=c=>new TT.MeshBasicMaterial({color:new TT.Color(c).multiplyScalar(2),transparent:true,opacity:.9,depthWrite:false});
+ const g=new TT.Group();const s=ROAD[START_K];const gate=new TT.Mesh(new TT.TorusGeometry(2.2,.08,6,40),mat(0xff6fae));gate.position.set(s[0],.08,s[1]);gate.rotation.x=Math.PI/2;
+ const calm=new TT.Mesh(new TT.TorusGeometry(2.5,.06,6,48),mat(0xffd0e8));calm.rotation.x=Math.PI/2;calm.position.y=.07;
+ const moon=new TT.Mesh(new TT.TorusGeometry(.5,.12,8,32,Math.PI*1.3),mat(0xc8d0ff));moon.position.y=2.4;
+ g.add(gate,calm,moon);gate.visible=calm.visible=moon.visible=false;scene.add(g);MK={g,gate,calm,moon};return MK;}
+/* the Sakura shrine circle: by the master's dojo (Sensei Hanaori) */
+function calmAt(){try{const N=W.npcs||[];const sh=N.find(n=>n.kind==='shrine');if(sh)return [sh.x,sh.z+3.2];const m=N.find(n=>n.kind==='master');if(m)return [m.x+4,m.z+2];}catch(e){}return [-20,-230];}
+/* ---------- #1 race ---------- */
+function raceStep(dt){const R=F3.race;const s=ROAD[START_K];const L=live();if(!L.length)return;
+ if(!R){if(has('petal_step'))return;const f=L.find(f=>Math.hypot(f.x-s[0],f.z-s[1])<2.2&&!near20(f));if(!f){F3.gateMsg=false;return;}if(F3.cool&&W.t<F3.cool)return;
+  if(!(W2().cleared||{}).sakura||W.fight){if(!F3.gateMsg){F3.gateMsg=true;toast('🏁 PETAL LOOP · LOCKED','the lap crosses the Grid Ring · beat Ronin Rotor first');}return;}
+  const gold=goldFor(f);F3.race={f,t:0,k:START_K,prog:0,clean:true,kerbs:0,gold};toast('🏁 PETAL LOOP · GO!','one lap · no kerbs · gold '+fmt(gold));F3.log.push('race start');return;}
+ const f=R.f;if(!f||f.ko||W.id!=='sakura'||W.fight){F3.race=null;return;}R.t+=dt;const [k,d]=nearestK(f.x,f.z,R.k);let dk=k-R.k;if(dk>360)dk-=720;if(dk<-360)dk+=720;R.prog+=dk;R.k=k;
+ if(d>HALF&&R.clean){R.clean=false;R.kerbs++;toast('🌸 KERB!','the lap still counts, but not for the secret');}
+ if(Math.abs(R.prog)>=720){const won=R.clean&&R.t<=R.gold;F3.log.push('race end '+R.t.toFixed(2)+' clean='+R.clean);F3.race=null;F3.cool=W.t+4;
+  try{HUD.big(won?'GOLD · '+fmt(R.t):'LAP · '+fmt(R.t),won?'clean lap · no kerbs':R.clean?'gold is '+fmt(R.gold):'kerb touched',1800);}catch(e){}if(won&&!has('petal_step'))W.awaken('petal_step',1,'Petal Step');}
+ else if(R.t>R.gold*2.2){F3.race=null;toast('🏁 lap abandoned','');}}
+const fmt=t=>{const m=Math.floor(t/60),s=t-m*60;return m+':'+(s<10?'0':'')+s.toFixed(2);};
+/* ---------- #8 petal storm ---------- */
+function calmStep(dt){const C=F3.calm;const [cx,cz]=calmAt();if(MK){MK.calm.position.x=cx;MK.calm.position.z=cz;}if(has('petal_calm'))return;const L=live();
+ const f=L.find(f=>Math.hypot(f.x-cx,f.z-cz)<2.5);const calmOK=f&&!near20(f);
+ if(!calmOK){if(C.storm>0)toast('🌸 the petals scatter…','stand still in the circle through the whole storm');C.t=0;C.storm=0;C.last=null;return;}
+ const mv=C.last?Math.hypot(f.x-C.last[0],f.z-C.last[1]):0;C.last=[f.x,f.z];if(mv>.004||f.act||(f.walk&&Math.abs(f.walk)>.01)){if(C.storm>0)toast('🌸 the petals scatter…','you moved · stand perfectly still');C.t=0;C.storm=0;return;}
+ C.t+=dt;if(C.t>=1.5&&C.storm===0){C.storm=.0001;toast('🌸 PETAL STORM','stay perfectly still · 10 s');}
+ if(C.storm>0){C.storm+=dt;if(((C.storm*4)|0)!==(((C.storm-dt)*4)|0))try{burst(new TT.Vector3(cx+(Math.sin(C.storm*7)*2),3.2,cz+Math.cos(C.storm*5)*2),10,[0xffb7d8,0xffffff],1.5,{life:1.2,s0:.07,grav:-1.2});}catch(e){}
+  if(C.storm>=10){C.storm=0;C.t=0;F3.log.push('calm');W.awaken('petal_calm',1,'Petal Calm');}}}
+/* ---------- #14 night branch ---------- */
+const isNight=()=>{const h=(F3.hourOverride!=null?F3.hourOverride:new Date().getHours());return h>=20||h<6;};
+function nightStep(){if(W.id!=='spire'){F3.night=null;return;}const n=isNight();if(F3.night!==n){F3.night=n;if(n&&!has('umbra_weave'))toast('🌙 THE SPIRE AT NIGHT','something stirs in the west alcove');}
+ if(MK){MK.moon.visible=n&&!has('umbra_weave');MK.moon.position.x=-291;MK.moon.position.z=-262;MK.moon.rotation.y+=.02;}
+ if(!n||has('umbra_weave'))return;const f=live().find(f=>Math.hypot(f.x+291,f.z+262)<2.4);if(f){F3.log.push('night');W.awaken('umbra_weave',1,'Night Walker');}}
+/* ---------- #16 Fusion Pair: win 10 fights with two opposite spirits equipped ---------- */
+function pairStep(){const P=F3.pair;const L=live();const pf=L.find(f=>pairEls(f));const S=A.spirits;if(!S||!S.D)return;const D=S.D();D.wins=D.wins||{};
+ const foes=ADV.en.filter(e=>!e.dead&&e.hp>0&&e.aggro&&L.some(f=>Math.hypot(f.x-e.x,f.z-e.z)<24));
+ if(foes.length){if(!P.inFight){P.inFight=true;P.paired=!!pf;P.foes=new Set();}else if(!pf)P.paired=false;for(const e of foes)P.foes.add(e);return;}
+ if(P.inFight){P.inFight=false;const fs=[...(P.foes||[])];P.foes=null;const won=fs.length>0&&fs.every(e=>e.dead||e.hp<=0)&&L.length>0;
+  if(P.paired&&won&&!has('twin_element')){D.wins.pair=(D.wins.pair||0)+1;try{A.save.dirty('pairwin');}catch(e){}const n=D.wins.pair;F3.log.push('pair '+n);
+   if(n>=10)W.awaken('twin_element',1,'Fusion Pair');else toast('双 FUSION PAIR · '+n+' / 10','fights won with opposite elements');}}}
+/* ---------- tick ---------- */
+if(typeof advAmbient==='function'){const _aa=advAmbient;advAmbient=function(dt){_aa.apply(this,arguments);if(!isAdv())return;const d=Math.min(.1,dt||0);
+  try{markers();const sak=W.on&&W.id==='sakura';if(MK){MK.gate.visible=sak&&!has('petal_step');MK.calm.visible=sak&&!has('petal_calm');if(!W.on||W.id!=='spire')MK.moon.visible=false;}
+   if(sak){raceStep(d);calmStep(d);}else F3.race=null;if(W.on)nightStep();pairStep();
+   for(let i=TRAIL.length-1;i>=0;i--){const p=TRAIL[i];p.t-=d;if(p.t<=0){TRAIL.splice(i,1);continue;}for(const e of ADV.en){if(e.dead||e.boss2||e.type==='B'||e.type==='N')continue;if(Math.hypot(e.x-p.x,e.z-p.z)<1.6)e.stun=Math.max(e.stun||0,.5);}}
+  }catch(e){if(!F3.err){F3.err=e;console.warn('[f3]',e);}}};}
+if(typeof advExit==='function'){const _ax=advExit;advExit=function(){F3.race=null;F3.calm={t:0,storm:0,last:null};TRAIL.length=0;if(MK){MK.gate.visible=MK.calm.visible=MK.moon.visible=false;}return _ax.apply(this,arguments);};}
+F3.ROAD=ROAD;F3.START_K=START_K;F3.calmAt=calmAt;F3.isNight=isNight;F3.pairEls=pairEls;F3.goldFor=goldFor;
 })();
 
 </script>
