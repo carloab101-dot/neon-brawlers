@@ -13295,6 +13295,7 @@ let sel=0,boardOpen=false,pausedBefore=false;
 const DESTS=()=>['downtown',...ORDER];
 function canTravel(){if(!ADV.on||G.phase!=='fight'||R.fight)return 'Not during a boss fight';if(window.SHOP&&SHOP.open)return 'Close the shop first';if(A.ui&&A.ui.open)return '…';
  const foes=ADV.en.some(e=>!e.dead&&e.hp>0&&!e.boss2&&e.aggro&&live().some(f=>Math.hypot(f.x-e.x,f.z-e.z)<14));return foes?'Clear nearby enemies first':null;}
+R.canTravel=canTravel;
 function openBoard(){dom();if(!ADV.on||boardOpen)return false;const why=canTravel();const wb=board.querySelector('.why');wb.textContent=why?'⚠ '+(why==='…'?'Finish the level-up first':why)+' · map view only, travel unavailable right now':'';wb.classList.toggle('on',!!why);boardOpen=true;pausedBefore=!!G.paused;G.paused=true;sel=Math.max(0,DESTS().indexOf(R.id||'downtown'));drawBoard();board.classList.add('on');return true;}
 function closeBoard(){if(!boardOpen)return;boardOpen=false;board.classList.remove('on');G.paused=pausedBefore;}
 function drawBoard(){const w=W2(),gr=board.querySelector('.gr');gr.innerHTML='';DESTS().forEach((id,i)=>{const d=id==='downtown'?{name:'DOWNTOWN',kanji:'街'}:regDef(id)||{name:id,kanji:'?'};const ok=R.unlocked(id);
@@ -14413,6 +14414,77 @@ if(typeof advAmbient==='function'){const _aa=advAmbient;advAmbient=function(dt){
   }catch(e){if(!F3.err){F3.err=e;console.warn('[f3]',e);}}};}
 if(typeof advExit==='function'){const _ax=advExit;advExit=function(){F3.race=null;F3.calm={t:0,storm:0,last:null};TRAIL.length=0;if(MK){MK.gate.visible=MK.calm.visible=MK.moon.visible=false;}return _ax.apply(this,arguments);};}
 F3.ROAD=ROAD;F3.START_K=START_K;F3.calmAt=calmAt;F3.isNight=isNight;F3.pairEls=pairEls;F3.goldFor=goldFor;
+})();
+
+</script>
+<script>/* adv2_f4.js */
+/* ===== ADV2 · DEPLOY F4: walkable gates between neighbouring regions + Downtown triangle trim =====
+   Gates: a glowing arch at the edge of each area facing its neighbour. Walk through it and you travel there, arriving
+   at the matching arch on the other side. Neko-Rail [T] stays as fast travel. Locked neighbours show why (same rule as the board).
+   Links: Downtown ↔ Sakura (N) · Bay (E) · Dunes (S) · Aurora (W); ring Sakura ↔ Bay ↔ Dunes ↔ Aurora ↔ Spire ↔ Sakura.
+   Positions are scanned clear of colliders with an 8 m clear walk-in (tGateScan.js).
+   Trim: Downtown city budget 150k / corrective band 148k–160k (was 172k / 170k–184k) so every Downtown view,
+   Mitts Magnum's corner included, stays far below the old 194k peak. Adventure only; Versus / Boxing untouched; never touches rnd(). */
+(function(){'use strict';const A=window.ADV2;const W=A&&A.world2;if(!A||!W||typeof G==='undefined'||typeof advAmbient!=='function')return;
+const TT=typeof T!=='undefined'?T:THREE;const isAdv=()=>typeof ADV!=='undefined'&&ADV.on&&G.mode==='adv';
+const toast=(a,b)=>{try{A.toast&&A.toast(a,false,b);}catch(e){}};
+const live=()=>{try{return advActive().filter(f=>f&&!f.ko);}catch(e){return [];}};
+/* ---------- Downtown trim ---------- */
+if(A.stream&&A.stream.cfg){const _cfg=A.stream.cfg;A.stream.cfg=function(){_cfg.apply(this,arguments);try{const B=CITY.budget;B.limit=150000;B.hi=160000;B.lo=148000;}catch(e){}};
+ try{if(A.stream.on||CITY.budget.limit===172000){const B=CITY.budget;B.limit=150000;B.hi=160000;B.lo=148000;}}catch(e){}}
+/* ---------- gate table: GATES[area][neighbour] = [x,z] (inside `area`) ---------- */
+const GATES={downtown:{sakura:[-0.4,-60.1],bay:[64,0],dunes:[4,64],aurora:[-60,-4]},
+ sakura:{downtown:[15.6,-174.8],bay:[77.4,-174.9],spire:[-103.8,-254.2]},
+ bay:{downtown:[184,-5.7],sakura:[197.4,-90.4],dunes:[186.6,63.4]},
+ dunes:{downtown:[12.6,176.2],bay:[72.3,178.3],aurora:[-57.8,180.8]},
+ aurora:{downtown:[-168.3,14.7],dunes:[-186.4,88.1],spire:[-252,-95]},
+ spire:{sakura:[-188.1,-258.6],aurora:[-251.5,-196]}};
+const CTR={downtown:[0,0],sakura:[15,-248],bay:[258,-8],dunes:[18,252],aurora:[-252,22],spire:[-252,-262]};
+const COL={downtown:0xff2ea0,sakura:0xff6fae,bay:0x29e6ff,dunes:0xffc23a,aurora:0x9fffe0,spire:0xb07cff};
+const nameOf=id=>{if(id==='downtown')return ['NEON DOWNTOWN','街'];try{const d=A.regions.get?A.regions.get(id):A.regions.list[id];return [d.name,d.kanji||''];}catch(e){return [id.toUpperCase(),''];}};
+const inward=(area,p)=>{const c=CTR[area];const dx=c[0]-p[0],dz=c[1]-p[1],L=Math.hypot(dx,dz)||1;return [dx/L,dz/L];};
+const area=()=>W.on&&W.id?W.id:'downtown';
+const GT=A.gates={GATES,list:[],area:null,pend:null,seen:{},log:[],R:1.7,ARM:6};
+/* ---------- visuals (math shapes, ~1.1k tris per gate) ---------- */
+const geo={};function G_(){if(geo.p)return geo;geo.p=new TT.CylinderGeometry(.28,.34,5.2,10,1);geo.arc=new TT.TorusGeometry(2.55,.2,8,28,Math.PI);geo.ring=new TT.RingGeometry(2.1,2.45,40);geo.veil=new TT.PlaneGeometry(4.6,4.9);geo.cap=new TT.OctahedronGeometry(.42,0);return geo;}
+function label(lines,col){const c=document.createElement('canvas');c.width=512;c.height=160;const x=c.getContext('2d');x.fillStyle='rgba(10,8,22,.78)';x.beginPath();x.roundRect?x.roundRect(6,6,500,148,26):x.rect(6,6,500,148);x.fill();
+ x.strokeStyle='#'+col.toString(16).padStart(6,'0');x.lineWidth=5;x.stroke();x.textAlign='center';x.fillStyle='#fff';x.font='900 50px Arial';x.fillText(lines[0],256,70);x.font='700 30px Arial';x.fillStyle=lines[2]||'#ffd6f0';x.fillText(lines[1],256,124);
+ const t=new TT.CanvasTexture(c);try{t.colorSpace=TT.SRGBColorSpace;}catch(e){}const s=new TT.Sprite(new TT.SpriteMaterial({map:t,transparent:true,depthWrite:false}));s.scale.set(4.4,1.375,1);return s;}
+function buildGate(ar,to,p){const g=G_();const ok=W.unlocked(to);const col=ok?COL[to]:0x6a6a7a;const [ix,iz]=inward(ar,p);const grp=new TT.Group();grp.name='adv2gate_'+to;grp.position.set(p[0],0,p[1]);grp.rotation.y=Math.atan2(ix,iz);
+ const chrome=new TT.MeshStandardMaterial({color:0x2a2f3a,metalness:.8,roughness:.22});const glow=new TT.MeshBasicMaterial({color:new TT.Color(col).multiplyScalar(ok?2.2:1)});
+ for(const sx of [-2.55,2.55]){const m=new TT.Mesh(g.p,chrome);m.position.set(sx,2.6,0);grp.add(m);const c=new TT.Mesh(g.cap,glow);c.position.set(sx,5.35,0);grp.add(c);}
+ const arc=new TT.Mesh(g.arc,glow);arc.position.y=5.2;grp.add(arc);
+ const ring=new TT.Mesh(g.ring,glow);ring.rotation.x=-Math.PI/2;ring.position.y=.06;grp.add(ring);
+ const veil=new TT.Mesh(g.veil,new TT.MeshBasicMaterial({color:col,transparent:true,opacity:ok?.22:.1,side:TT.DoubleSide,depthWrite:false,blending:TT.AdditiveBlending}));veil.position.y=2.6;grp.add(veil);
+ const [nm,kj]=nameOf(to);const lb=label([kj+' '+nm,ok?'GATE · walk through':'🔒 '+W.lockWhy(to),ok?'#bffcff':'#ffb0b0'],col);lb.position.set(0,7.0,0);grp.add(lb);
+ grp.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});
+ return {ar,to,x:p[0],z:p[1],ix,iz,grp,veil,ok,armed:false,lockMsgT:-9};}
+function parentFor(ar){if(ar==='downtown')return ADV.world&&ADV.world.group;return W.root;}
+function clear(){for(const q of GT.list){try{q.grp.parent&&q.grp.parent.remove(q.grp);q.grp.traverse(o=>{if(o.material){if(o.material.map)o.material.map.dispose();o.material.dispose();}});}catch(e){}}GT.list=[];GT.area=null;}
+function build(ar){clear();const par=parentFor(ar);if(!par)return;const D=GATES[ar]||{};const L=live();
+ for(const to in D){const q=buildGate(ar,to,D[to]);par.add(q.grp);q.armed=!L.some(f=>Math.hypot(f.x-q.x,f.z-q.z)<GT.ARM);GT.list.push(q);}GT.area=ar;GT.par=par;GT.sig=sig(ar);}
+const sig=ar=>Object.keys(GATES[ar]||{}).map(t=>W.unlocked(t)?1:0).join('');
+/* ---------- arrival at the matching gate ---------- */
+function arrive(){const P=GT.pend;if(!P||W.busy||area()!==P.to)return false;GT.pend=null;const g=GATES[P.to]&&GATES[P.to][P.from];if(!g)return true;const [ix,iz]=inward(P.to,g);
+ const px=g[0]+ix*4.2,pz=g[1]+iz*4.2;let i=0;try{for(const f of advActive()){const sx=-iz*(i?1.3:0)*(i%2?1:-1),sz=ix*(i?1.3:0)*(i%2?1:-1);const t={x:px+sx,z:pz+sz};collide(t,.42);f.x=t.x;f.z=t.z;f.vz=0;f.act=null;f.ang=Math.atan2(ix,iz);try{applyPose(f);}catch(e){}i++;}}catch(e){}
+ G.snapCam=true;try{CAM.target.set(px,1.1,pz);}catch(e){}GT.log.push('arrive '+P.from+'>'+P.to);const [nm]=nameOf(P.from);toast('🚪 '+nameOf(P.to)[0],'through the '+nm+' gate · Neko-Rail [T] for fast travel');return true;}
+/* ---------- tick ---------- */
+function step(dt){if(!isAdv()){if(GT.list.length)clear();return;}if(W.busy)return;const ar=area();
+ if(GT.pend){if(arrive())build(area());else return;}
+ if(GT.area!==ar||!GT.list.length||!GT.par||!GT.par.parent||(GT.list[0]&&GT.list[0].grp.parent!==GT.par)||GT.sig!==sig(ar))build(ar);
+ if(!GT.seen[ar]&&GT.list.length){GT.seen[ar]=1;const ns=GT.list.map(q=>nameOf(q.to)[0]).join(' · ');setTimeout(()=>{if(area()===ar)toast('🚪 GATES · '+ns,'walk through the glowing arches at the edge · [T] Neko-Rail fast travel');},2600);}
+ GT.t=(GT.t||0)+dt;const L=live();if(!L.length)return;const t=GT.t;
+ for(const q of GT.list){q.veil.material.opacity=(q.ok?.18:.08)+Math.sin(t*3+q.x)*.05;
+  const dmin=Math.min(...L.map(f=>Math.hypot(f.x-q.x,f.z-q.z)));if(dmin>GT.ARM){q.armed=true;continue;}
+  if(!q.ok&&dmin<=GT.R+.4){/* a locked gate is a closed barrier: always pushes back, reminds every 3 s */for(const f of L)if(Math.hypot(f.x-q.x,f.z-q.z)<=GT.R+.4)push(f,q);if(t-q.lockMsgT>3){q.lockMsgT=t;toast('🔒 '+nameOf(q.to)[0]+' · LOCKED',W.lockWhy(q.to));GT.log.push('locked '+q.to);}continue;}
+  if(!q.armed||dmin>GT.R)continue;
+  const f=L.find(f=>Math.hypot(f.x-q.x,f.z-q.z)<=GT.R);
+  const why=W.canTravel?W.canTravel():null;if(why){q.armed=false;toast('🚪 GATE · not now',why==='…'?'Finish the level-up first':why);push(f,q);continue;}
+  GT.pend={from:ar,to:q.to};GT.log.push('gate '+ar+'>'+q.to);q.armed=false;try{W.travel(q.to);}catch(e){GT.pend=null;}break;}}
+function push(f,q){if(!f)return;const t={x:q.x+q.ix*2.6,z:q.z+q.iz*2.6};try{collide(t,.42);}catch(e){}f.x=t.x;f.z=t.z;}
+const _aa=advAmbient;advAmbient=function(dt){_aa.apply(this,arguments);try{step(Math.min(.1,dt||0));}catch(e){if(!GT.err){GT.err=e;console.warn('[f4]',e);}}};
+if(typeof advExit==='function'){const _ax=advExit;advExit=function(){GT.pend=null;clear();return _ax.apply(this,arguments);};}
+GT.build=build;GT.clear=clear;GT.area_=area;
 })();
 
 </script>
