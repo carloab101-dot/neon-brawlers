@@ -7960,6 +7960,8 @@ body[data-mode=adv] .x2b{display:flex}.pl.r .x2b{flex-direction:row-reverse}
 .pl.r .x2b .x2f{left:auto;right:0}
 .x2b .x2u{flex:none;display:none;font:italic 900 10px/12px Bahnschrift,Arial,sans-serif;color:#fff;background:linear-gradient(90deg,#ff2ea0,#ff7ad0);padding:0 7px;border-radius:3px;pointer-events:auto;cursor:pointer;animation:x2p 1s infinite}
 .x2b.pend .x2u{display:block}.x2b .x2tr{min-width:24px}@media (max-width:600px){.x2b .x2w{display:none}.x2b .x2u{padding:0 4px;font-size:9px}.x2b{gap:3px}.x2b .x2l{font-size:9px;padding:0 4px}.x2b .x2tr{min-width:12px}}.x2b.flash .x2f{background:linear-gradient(90deg,#ffd040,#fff6c0);box-shadow:0 0 12px #ffd040}
+#lvup .x2later{position:fixed;top:14px;right:16px;z-index:3;font:italic 900 13px Bahnschrift,Arial,sans-serif;letter-spacing:.06em;color:#fff;padding:9px 16px;border:1.5px solid rgba(255,255,255,.55);background:linear-gradient(180deg,rgba(255,46,160,.85),rgba(120,10,80,.9));clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);cursor:pointer;box-shadow:0 0 18px rgba(255,46,160,.6)}
+@media (max-width:600px){#lvup .x2later{top:8px;right:8px;padding:7px 12px;font-size:11px}}
 @keyframes x2p{50%{filter:brightness(1.5);transform:scale(1.08)}}
 #lvup{position:fixed;inset:0;z-index:70;display:none;overflow:auto;background:radial-gradient(120% 90% at 50% 10%,rgba(42,16,80,.94),rgba(12,10,36,.96) 45%,rgba(4,5,12,.97));font-family:Bahnschrift,"DIN Alternate","Avenir Next Condensed","Arial Narrow",Arial,sans-serif;color:#fff}
 #lvup.on{display:block}#lvup .wrap{max-width:1180px;margin:0 auto;padding:22px 30px 18px;display:flex;flex-direction:column;gap:12px;min-height:100%;box-sizing:border-box}
@@ -8073,9 +8075,12 @@ body[data-mode=adv] .x2b{display:flex}.pl.r .x2b{flex-direction:row-reverse}
    <div class="xp"><div style="width:${(pr.frac*100).toFixed(1)}%"></div><span>LV ${pr.lv}${pr.lv<LV.CAP?' → '+(pr.lv+1)+' · '+Math.round(pr.cur)+' / '+pr.need+' XP':' · MAX'}</span></div>
    <div class="track">${tr}</div><div class="lcards">${cards}</div>
    <div class="foot"><div class="lhint">${count>1?`P${f.side+1}: your ◀ ▶ keys browse · your attack key confirms`:'◀ ▶ / A D browse · Enter / attack confirms'} · tap a card twice on touch · change picks later at any kiosk (Move Respec, 20 coins)</div><button type="button" class="go" data-p="${idx}">${P.done?'✓ LEARNED':'LEARN ▶'}</button></div></div>`;}
- function render(){ov.innerHTML='<div class="wrap'+(ui.panels.length>1&&innerWidth>600?' duo':'')+'">'+ui.panels.map((P,i)=>panelHtml(P,i,ui.panels.length)).join('')+'</div>';
+ function render(){ov.innerHTML='<button type="button" class="x2later" title="Close · pick later (Esc / Ⓑ)">LATER ✕</button><div class="wrap'+(ui.panels.length>1&&innerWidth>600?' duo':'')+'">'+ui.panels.map((P,i)=>panelHtml(P,i,ui.panels.length)).join('')+'</div>';
   ov.querySelectorAll('.lcard').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const P=ui.panels[+b.dataset.p],i=+b.dataset.i;if(P.done)return;if(P.sel===i&&P.arm)confirm(P);else{P.sel=i;P.arm=true;render();}}));
-  ov.querySelectorAll('.go').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();confirm(ui.panels[+b.dataset.p]);}));}
+  ov.querySelectorAll('.go').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();confirm(ui.panels[+b.dataset.p]);}));later_();}
+ function later_(){const x=ov.querySelector('.x2later');if(x)x.addEventListener('click',e=>{e.stopPropagation();later();});}
+ function later(){if(!ui.open)return;ui.respecKeys=null;close();ui.cool=G.t+45;A.toast('Level-up saved for later',false,'tap the pulsing LV badge or wait for a quiet moment');}
+ ui.later=later;
  function confirm(P){if(!P||P.done)return;const o=P.o.opts[P.sel];LV.pick(P.f.mi,P.lv,o.id);P.done=true;try{sfx('ko');}catch(e){}A.toast(o.name.toUpperCase()+' LEARNED',false,(MECH_INFO[P.f.mi]||{}).name);
   if(ui.panels.every(q=>q.done)){setTimeout(close,260);}render();ov.scrollTop=0;}
  function close(){ui.open=false;ov.classList.remove('on');ui.panels=[];ui.mode='pick';ui.cool=G.t+1.5;if(!(window.SHOP&&SHOP.open))pause(false);A.save.write('levelup');}
@@ -8091,12 +8096,13 @@ body[data-mode=adv] .x2b{display:flex}.pl.r .x2b{flex-direction:row-reverse}
   const draw=()=>{ov.innerHTML=`<div class="wrap"><div class="pn"><div class="top"><div class="medal"><b>道</b><i>DOJO</i></div><div><h1>DOJO RESPEC</h1><h2>${MECH_INFO[f.mi].name} · <span>pick one learned choice to change</span></h2></div></div>
    <div class="rs">${ls.map((l,i)=>{const id=r.picks[l],m=LV.MS[l];const o=optionsFor(f.mi,l).opts.find(q=>q.id===id);return `<button type="button" class="${i===sel?'sel':''}" data-i="${i}">LV ${l} · ${m.kind==='mod'?m.slot+' MOD':m.kind.toUpperCase()}<br><small>${o?o.name:id}</small></button>`;}).join('')}</div>
    <div class="foot"><div class="lhint">◀ ▶ choose · Enter / attack confirms</div><button type="button" class="go">CHANGE ▶</button></div></div></div>`;
-   ov.querySelectorAll('.rs button').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const i=+b.dataset.i;if(i===sel)go();else{sel=i;draw();}}));ov.querySelector('.go').addEventListener('click',e=>{e.stopPropagation();go();});};
+   ov.insertAdjacentHTML('afterbegin','<button type="button" class="x2later" title="Close (Esc / Ⓑ)">✕ CLOSE</button>');later_();ov.querySelectorAll('.rs button').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const i=+b.dataset.i;if(i===sel)go();else{sel=i;draw();}}));ov.querySelector('.go').addEventListener('click',e=>{e.stopPropagation();go();});};
   const go=()=>{const l=ls[sel];delete r.picks[l];if(!r.pending.includes(l))r.pending.push(l);A.save.data.stats.respecs++;ui.mode='respec';ui.respecKeys=null;ui.panels=[{f,lv:l,o:optionsFor(f.mi,l),sel:0,done:false}];render();};
   ui.respecKeys={left:()=>{sel=(sel+ls.length-1)%ls.length;draw();},right:()=>{sel=(sel+1)%ls.length;draw();},ok:go};draw();};
  /* keyboard while open */
  addEventListener('keydown',e=>{if(!ui.open)return;const c=e.code;e.preventDefault();e.stopImmediatePropagation();if(e.repeat)return;
   if(ui.respecKeys){if(c==='ArrowLeft'||c==='KeyA'||c===BINDS[0].l)ui.respecKeys.left();else if(c==='ArrowRight'||c==='KeyD'||c===BINDS[0].r)ui.respecKeys.right();else if(c==='Enter'||c==='Space'||c===BINDS[0].jab||c===BINDS[0].s0)ui.respecKeys.ok();else if(c==='Escape'){ui.respecKeys=null;close();}return;}
+  if(c==='Escape'){later();return;}
   const solo=ui.panels.length===1;
   ui.panels.forEach(P=>{if(P.done)return;const b=BINDS[P.f.side]||{};const n=P.o.opts.length;
    let a=null;if(c===b.l||(solo&&(c==='ArrowLeft'||c==='KeyA')))a=-1;else if(c===b.r||(solo&&(c==='ArrowRight'||c==='KeyD')))a=1;else if(c===b.jab||c===b.s0||(solo&&(c==='Enter'||c==='Space'||c==='NumpadEnter')))a=0;
@@ -13260,6 +13266,7 @@ body[data-mode=adv] #w2btn.on{display:block}
 #w2board .gr{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}@media(max-width:600px){#w2board .gr{grid-template-columns:repeat(2,1fr)}#w2board h2{font-size:18px}}
 #w2board .c{position:relative;border-radius:14px;padding:12px 10px;border:2px solid #ffffff22;background:#ffffff0a;color:#fff;cursor:pointer;min-height:84px}
 #w2board .c .k{font:900 26px/1 serif;color:#ffc23a}#w2board .c .n{font:900 13px/1.2 system-ui;margin-top:6px;letter-spacing:.04em}#w2board .c .s{font-size:11px;color:#c9c2e8;margin-top:4px}
+#w2board .why{display:none;margin:-4px 0 10px;padding:7px 10px;border-radius:10px;background:#ff2ea022;border:1px solid #ff2ea066;color:#ffb3d9;font:800 12px system-ui}#w2board .why.on{display:block}#w2board .c .lk{margin-top:6px;font:900 10.5px/1.25 system-ui;color:#ffc23a;letter-spacing:.03em}
 #w2board .c.sel{border-color:#ffc23a;box-shadow:0 0 18px #ffc23a66}#w2board .c.lock{opacity:.45;cursor:default}#w2board .c.here{outline:2px dashed #29e6ff}
 #w2board .ft{display:flex;justify-content:space-between;align-items:center;margin-top:12px;color:#9a93bd;font-size:11px}#w2board .x{background:#ff2ea0;border:0;color:#fff;font:900 13px system-ui;border-radius:10px;padding:8px 14px;cursor:pointer}
 #w2prm{position:fixed;z-index:2147481900;transform:translate(-50%,-100%);display:none;padding:6px 12px;border-radius:999px;background:rgba(14,10,30,.88);border:1px solid #ffc23a99;color:#fff;font:800 13px/1 system-ui;white-space:nowrap;pointer-events:auto}
@@ -13273,8 +13280,8 @@ body[data-mode=adv] #w2btn.on{display:block}
 #w2awk .bt{display:flex;gap:10px;justify-content:center;margin-top:18px}#w2awk button{border:0;border-radius:12px;padding:11px 18px;font:900 14px system-ui;cursor:pointer}#w2awk .eq{background:#ffc23a;color:#1a1000}#w2awk .lt{background:#ffffff22;color:#fff}
 @media(max-width:600px){#w2awk .h{font-size:22px}#w2awk .md{width:104px;height:104px;font-size:56px}}
 #w2fade{position:fixed;inset:0;z-index:2147482300;background:#05040b;opacity:0;pointer-events:none;transition:opacity .35s}#w2fade.on{opacity:1}`;document.head.appendChild(st);
- btn=document.createElement('div');btn.id='w2btn';btn.textContent='🚉 NEKO-RAIL';btn.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();openBoard();});document.body.appendChild(btn);
- board=document.createElement('div');board.id='w2board';board.innerHTML='<div class="bx" role="dialog" aria-label="Neko-Rail"><h2>🚉 NEKO-RAIL</h2><div class="sub">Fast travel · free · regions open as the story advances</div><div class="gr"></div><div class="ft"><span>←→↑↓ choose · Enter travel · Esc close</span><button class="x">CLOSE</button></div></div>';
+ btn=document.createElement('div');btn.id='w2btn';btn.innerHTML='🗺 MAP · NEKO-RAIL <kbd>T</kbd>';btn.title='Neko-Rail map: 6 regions (T / controller View)';btn.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();openBoard();});document.body.appendChild(btn);
+ board=document.createElement('div');board.id='w2board';board.innerHTML='<div class="bx" role="dialog" aria-label="Neko-Rail"><h2>🚉 NEKO-RAIL</h2><div class="sub">The Adventure map · 6 regions · free fast travel · regions open as you beat each boss</div><div class="why"></div><div class="gr"></div><div class="ft"><span>←→↑↓ choose · Enter / Ⓐ travel · Esc / T / Ⓑ close</span><button class="x">✕ CLOSE</button></div></div>';
  board.querySelector('.x').addEventListener('click',closeBoard);document.body.appendChild(board);
  prm=document.createElement('div');prm.id='w2prm';prm.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(R.prompt)R.prompt.act(R.prompt.f);});document.body.appendChild(prm);
  awk=document.createElement('div');awk.id='w2awk';awk.innerHTML='<div class="bx"><div class="md"></div><div class="h">TECHNIQUE AWAKENED</div><div class="n"></div><div class="t"></div><div class="d"></div><div class="s"></div><div class="bt"><button class="eq">EQUIP NOW</button><button class="lt">LATER</button></div></div>';
@@ -13288,13 +13295,13 @@ let sel=0,boardOpen=false,pausedBefore=false;
 const DESTS=()=>['downtown',...ORDER];
 function canTravel(){if(!ADV.on||G.phase!=='fight'||R.fight)return 'Not during a boss fight';if(window.SHOP&&SHOP.open)return 'Close the shop first';if(A.ui&&A.ui.open)return '…';
  const foes=ADV.en.some(e=>!e.dead&&e.hp>0&&!e.boss2&&e.aggro&&live().some(f=>Math.hypot(f.x-e.x,f.z-e.z)<14));return foes?'Clear nearby enemies first':null;}
-function openBoard(){dom();const why=canTravel();if(why){toast('🚉 '+why);return false;}boardOpen=true;pausedBefore=!!G.paused;G.paused=true;sel=Math.max(0,DESTS().indexOf(R.id||'downtown'));drawBoard();board.classList.add('on');return true;}
+function openBoard(){dom();if(!ADV.on||boardOpen)return false;const why=canTravel();const wb=board.querySelector('.why');wb.textContent=why?'⚠ '+(why==='…'?'Finish the level-up first':why)+' · map view only, travel unavailable right now':'';wb.classList.toggle('on',!!why);boardOpen=true;pausedBefore=!!G.paused;G.paused=true;sel=Math.max(0,DESTS().indexOf(R.id||'downtown'));drawBoard();board.classList.add('on');return true;}
 function closeBoard(){if(!boardOpen)return;boardOpen=false;board.classList.remove('on');G.paused=pausedBefore;}
 function drawBoard(){const w=W2(),gr=board.querySelector('.gr');gr.innerHTML='';DESTS().forEach((id,i)=>{const d=id==='downtown'?{name:'DOWNTOWN',kanji:'街'}:regDef(id)||{name:id,kanji:'?'};const ok=R.unlocked(id);
   const c=document.createElement('div');c.className='c'+(i===sel?' sel':'')+(ok?'':' lock')+((R.id||'downtown')===id?' here':'');
-  const st=id==='downtown'?'Chapter 1 · the hub':!ok?'🔒 '+R.lockWhy(id):(w.cleared[id]?'✓ Lumen Core restored':'Chapter '+HOST[id].ch+' · '+BOSS_NAME[HOST[id].boss]);
-  c.innerHTML='<div class="k">'+(d.kanji||'')+'</div><div class="n">'+d.name+'</div><div class="s">'+st+'</div>';c.addEventListener('click',()=>{sel=i;go();});gr.appendChild(c);});}
-function go(){const id=DESTS()[sel];if(!R.unlocked(id)){toast('🔒 '+R.lockWhy(id));return;}closeBoard();if((R.id||'downtown')===id)return;travel(id);}
+  const st=id==='downtown'?'Chapter 1 · the hub'+(((A.save.data&&A.save.data.adv.clears)||0)>0?' · ✓ cleared':' · quest '+Math.min(STAGES.length,((A.save.data&&A.save.data.adv.best)||0)+1)+' / '+STAGES.length):!ok?'🔒 LOCKED':(w.cleared[id]?'✓ Lumen Core restored':'Chapter '+HOST[id].ch+' · '+BOSS_NAME[HOST[id].boss]);
+  c.innerHTML='<div class="k">'+(d.kanji||'')+'</div><div class="n">'+d.name+'</div><div class="s">'+st+'</div>'+(ok?'':'<div class="lk">'+(ORDER.indexOf(id)===0?'Beat the Downtown boss (Foundry Titan, quest '+STAGES.length+') to unlock':'Beat '+BOSS_NAME[HOST[ORDER[ORDER.indexOf(id)-1]].boss]+' in '+regName(ORDER[ORDER.indexOf(id)-1])+' to unlock')+'</div>');c.addEventListener('click',()=>{sel=i;go();});gr.appendChild(c);});}
+function go(){const id=DESTS()[sel];if(!R.unlocked(id)){toast('🔒 '+R.lockWhy(id));return;}if((R.id||'downtown')!==id){const why=canTravel();if(why){toast('🚉 '+why);return;}}closeBoard();if((R.id||'downtown')===id)return;travel(id);}
 function onKey(e){if(awk&&awk.classList.contains('on')){if(['Enter','Space','Escape','KeyW','KeyS'].includes(e.code)){e.preventDefault();e.stopPropagation();awkClose(e.code==='Enter'||e.code==='Space'||e.code==='KeyW');}return;}
  if(boardOpen){const n=DESTS().length,cols=innerWidth<600?2:3;let used=true;if(e.code==='ArrowRight'||e.code==='KeyD')sel=(sel+1)%n;else if(e.code==='ArrowLeft'||e.code==='KeyA')sel=(sel+n-1)%n;else if(e.code==='ArrowDown')sel=Math.min(n-1,sel+cols);else if(e.code==='ArrowUp')sel=Math.max(0,sel-cols);
   else if(e.code==='Enter'||e.code==='Space')go();else if(e.code==='Escape'||e.code==='KeyT')closeBoard();else used=false;if(used){e.preventDefault();e.stopPropagation();if(boardOpen)drawBoard();}return;}
@@ -13561,7 +13568,7 @@ const prev=[[],[]];const edge=(p,g,i)=>B(g,i)&&!prev[p][i];
 /* ---------- menu mode ---------- */
 const vis=el=>{if(!el)return false;const r=el.getBoundingClientRect();if(r.width<2||r.height<2)return false;const cs=getComputedStyle(el);return cs.visibility!=='hidden'&&cs.display!=='none'&&+cs.opacity>.05;};
 function overlay(){const q=id=>{const e=document.getElementById(id);return e&&vis(e)?e:null;};
- if(q('w2awk'))return 'keys';if(q('w2board'))return 'keys';if(window.SHOP&&SHOP.open)return 'keys';if(A.ui&&A.ui.open)return 'keys';
+ if(q('sktree'))return 'keys';if(q('w2awk'))return 'keys';if(q('w2board'))return 'keys';if(window.SHOP&&SHOP.open)return 'keys';if(A.ui&&A.ui.open)return 'keys';
  if(typeof G!=='undefined'&&G.ui==='select')return 'select';if(typeof G!=='undefined'&&['menu','stats','arena','keys'].includes(G.ui))return 'focus';
  if(typeof G!=='undefined'&&G.paused)return 'focus';return null;}
 let focusEl=null,ring=null;
@@ -13575,10 +13582,11 @@ function moveFocus(dx,dy){const L=focusList();if(!L.length){focusEl=null;return;
 let rep={k:null,t:0};
 function dirOf(g){const x=ax(g,0)+(B(g,15)?1:0)-(B(g,14)?1:0),y=ax(g,1)+(B(g,13)?1:0)-(B(g,12)?1:0);if(Math.abs(x)<.5&&Math.abs(y)<.5)return null;return Math.abs(x)>Math.abs(y)?(x>0?'R':'L'):(y>0?'D':'U');}
 function menuStep(mode,g,p,now){const d=dirOf(g);let fire=false;if(d!==rep.k){rep={k:d,t:now+.38};fire=!!d;}else if(d&&now>rep.t){rep.t=now+.13;fire=true;}
- if(mode==='keys'){if(fire)tap({U:'ArrowUp',D:'ArrowDown',L:'ArrowLeft',R:'ArrowRight'}[d]);if(edge(p,g,0))tap('Enter');if(edge(p,g,1)||edge(p,g,9))tap('Escape');}
+ if(mode==='keys'){if(A.skill&&A.skill.open){if(edge(p,g,4))tap('KeyQ');if(edge(p,g,5))tap('KeyE');if(edge(p,g,3))tap('KeyK');if(edge(p,g,2))tap('KeyR');}if(fire)tap({U:'ArrowUp',D:'ArrowDown',L:'ArrowLeft',R:'ArrowRight'}[d]);if(edge(p,g,0))tap('Enter');if(edge(p,g,1)||edge(p,g,9))tap('Escape');}
  else if(mode==='select'){const b=(typeof BINDS!=='undefined'&&BINDS&&BINDS[p])||{};if(fire&&(d==='L'||d==='R'))tap(d==='L'?b.l:b.r);if(edge(p,g,0)||edge(p,g,9))tap('Enter');if(edge(p,g,1))tap('Escape');}
  else{if(fire)moveFocus(d==='L'?-1:d==='R'?1:0,d==='U'?-1:d==='D'?1:0);else if(!focusEl||!vis(focusEl))moveFocus(0,0);showRing();
   if(edge(p,g,0)&&focusEl){focusEl.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));focusEl.dispatchEvent(new PointerEvent('pointerup',{bubbles:true}));focusEl.click();}
+  if(edge(p,g,3)&&typeof G!=='undefined'&&G.ui==='menu'&&A.skill)tap('KeyK');
   if(edge(p,g,1)||edge(p,g,9))tap('Escape');}}
 /* ---------- gameplay ---------- */
 function playStep(p,g,dt){const b=BINDS[p],e=EXTRA[p];if(!b)return;const I=IN[p];if(I){const jx=ax(g,0),jy=ax(g,1);I.jx=jx;I.jy=jy;X[p]=X[p]||{};X[p].stick=!!(jx||jy);}
@@ -13616,7 +13624,7 @@ const EXTRA={BracketLeft:'KeyV',BracketRight:'KeyB',KeyU:'KeyF',Quote:'KeyG'};
 function overlayOpen(){if(G.ui||G.paused)return true;const on=id=>{const e=document.getElementById(id);return !!(e&&e.classList.contains('on'));};
  return on('w2board')||on('w2awk')||!!(A.ui&&A.ui.open)||!!(window.SHOP&&SHOP.open);}
 function mapCode(code){try{const b1=BINDS[1],b0=BINDS[0];for(const k in b1){if(b1[k]===code&&b0[k]&&b0[k]!==code)return b0[k];}}catch(e){}return EXTRA[code]||null;}
-function relay(e,type){if(e._solo||e._pad)return;if(!solo()||!ADV.on||overlayOpen())return;const to=mapCode(e.code);if(!to)return;
+function relay(e,type){if(e._solo||e._pad)return;if(e.code==='KeyK'&&A.skill)return;/* F1: K = skill trees in solo */if(!solo()||!ADV.on||overlayOpen())return;const to=mapCode(e.code);if(!to)return;
  e.preventDefault();e.stopImmediatePropagation();const ev=new KeyboardEvent(type,{code:to,key:to,bubbles:true,cancelable:true,repeat:e.repeat});ev._solo=true;S.aliased++;e.target.dispatchEvent(ev);}
 addEventListener('keydown',e=>relay(e,'keydown'),true);addEventListener('keyup',e=>relay(e,'keyup'),true);
 
@@ -13634,6 +13642,263 @@ if(typeof gameStep==='function'){const _gs=gameStep;gameStep=function(dt){S.simT
   rx=t.x;rz=t.z;ne=n;}else{rx=null;}}catch(e){}return _r.apply(this,arguments);};})();
 /* per-frame flag sync (cheap) */
 function tick(){try{flag();}catch(e){}requestAnimationFrame(tick);}requestAnimationFrame(tick);
+})();
+
+</script>
+<script>/* adv2_skill.js */
+/* ---- Neon Brawlers · Deploy F1: SKILL TREES (ADVENTURE_OVERVIEW §4) ----
+   Trees per fighter: 3 SPIRIT trees (the 3 equipped spirits = specials Z X C), the STYLE tree of the equipped technique (regular hits),
+   the WEAPON tree (the weapon streak attack = V move) and the WEAPON-TYPE MASTERY tree (shared by every fighter of that type).
+   3 rows × 3 nodes, 1 point per node; one node in a row opens the next row; row 3 needs a shrine meditation breakthrough; free reset at shrines.
+   Points come from use: spirit = its special landing, style = regular hits, weapon / mastery = weapon attacks. Every node is live in combat (Adventure only).
+   Open: K · controller Y (pause menu) · SKILLS button (HUD + pause menu). Close: K · Esc · ✕ CLOSE · controller B. */
+(function(){'use strict';const A=window.ADV2;if(!A||!A.lv||!A.save||typeof G==='undefined')return;const LV=A.lv;
+let SIM=0;const t=()=>SIM;/* own sim clock: advanced by advAmbient dt (G.t can stand still under fixed-step) */const isAdv=()=>typeof ADV!=='undefined'&&ADV.on&&G.mode==='adv';
+const KEYS=['Z','X','C'];const TYPES=['blade','heavy','staff','gauntlet','thrown','bow'];
+const TYPE_NAME={blade:'BLADE',heavy:'HEAVY',staff:'STAFF / WHIP',gauntlet:'GAUNTLET',thrown:'THROWN',bow:'BOW / FORMS'};
+const wType=mi=>TYPES[mi%TYPES.length];
+/* ---------- node definitions: [name, text, effect] ---------- */
+const famNode=fam=>({RUSH:['Rush armor','0.4 s of armor (i-frames) when the special fires',{ifr:.4}],MELEE:['Stagger','special hits stagger 0.3 s',{stun:.3}],
+ SHOT:['Long shot','special range +15%',{rng:.15}],BEAM:['Wide beam','special reach +15%',{rng:.15}],AOE:['Big blast','special radius +15%',{rng:.15}],
+ ZONE:['Linger','special hits stagger 0.25 s',{stun:.25}],TRICK:['Vanish','0.6 s of i-frames when the special fires',{ifr:.6}]})[fam]||['Stagger','special hits stagger 0.3 s',{stun:.3}];
+function spiritNodes(fam){return [[['Power','special damage +4%',{dmg:.04}],['Quick','special cooldown −6%',{cd:.06}],['Reach','special range / radius +10%',{rng:.1}]],
+ [famNode(fam),['Trait boost','your LV-pick upgrade on this slot hits ×1.5 harder (+3% if none)',{trait:1}],['Bond','this special charges the ULT meter +25%',{ult:.25}]],
+ [['Signature mutation','hits leave a bleed wake: 3 ticks × 2 dmg',{bleed:2}],['Element burst · void','each hit drains 3 HP back to you',{drain:3}],['Echo','the special repeats once at 35%',{echo:.35}]]];}
+const STYLE_NODES=[[['Tempo','regular hit chain 6% faster',{tempo:.06}],['Long arm','regular hit reach +0.2 m',{rngAdd:.2}],['Guard break','regular hits stagger 0.2 s',{stun:.2}]],
+ [['Cancel','a special used right after a regular hit gets −0.4 s cooldown',{cancel:.4}],['Counter jab','after you guard a hit, regular hits deal +50% for 1 s',{counter:.5}],['Streak','regular hits count ×1.25 toward the weapon streak (weapon cooldown −0.15 s per hit)',{streak:.15}]],
+ [['Art link','a weapon attack used within 1 s of a regular hit deals +20%',{art:.2}],['Finisher+','the last hit of the chain deals ×1.5 and knocks back ×1.5',{fin:.5}],['Fusion seed','regular hits charge the ULT meter +30% (counts as tier III for Spirit Fusion)',{ult:.3}]]];
+const WEAPON_NODES=[[['Edge','weapon attack +5%',{dmg:.05}],['Rhythm','weapon cooldown −10%',{vcd:.1}],['Recovery','−10% damage taken for 2 s after a weapon attack',{guard:.1}]],
+ [['Property+','weapon hits stagger 0.4 s',{stun:.4}],['Rune socket','weapon range +12% (runes slot in with Spirit Fusion)',{rng:.12}],['Shockwave','+1 small hit (30%) after each weapon hit',{echo:.3}]],
+ [['Overdrive','every 3rd weapon attack ×1.5',{od:.5}],['Resonance','weapon attacks charge the ULT meter +30%',{ult:.3}],['Spirit-forge echo','weapon hits burn: 3 ticks × 1 dmg',{bleed:1}]]];
+const MASTERY_ROW1={blade:['Faster parries','−25% damage taken while guarding',{blockDr:.25}],heavy:['Ground slam','weapon hits stagger 0.3 s',{stun:.3}],staff:['Pull','weapon hits pull enemies 1 m in',{pull:1}],
+ gauntlet:['Block counter','after you guard a hit, weapon attacks +25% for 1 s',{counterW:.25}],thrown:['Pin','weapon hits pin (stagger) 0.4 s',{stun:.4}],bow:['Form break','weapon range +10%',{rng:.1}]};
+const MASTERY_ROW3={blade:['Bleed +1','weapon hits bleed 3 × 2',{bleed:2}],heavy:['Slam stagger','weapon hits knock back ×1.5',{kb:.5}],staff:['Stun pull','weapon hits stagger 0.3 s',{stun:.3}],
+ gauntlet:['Thorns','20% of blocked hits deal damage back',{thorns:.2}],thrown:['Double recall','+1 small hit (40%) after each weapon hit',{echo:.4}],bow:['Pierce','weapon range +15%',{rng:.15}]};
+function masteryNodes(ty){return [[MASTERY_ROW1[ty],['Drill','weapon damage +4%',{dmg:.04}],['Footwork','weapon cooldown −5%',{vcd:.05}]],
+ [['Armor swing','0.3 s of armor (i-frames) on every weapon swing',{ifr:.3}],['Weight','weapon damage +6%',{dmg:.06}],['Flow','weapon attacks charge the ULT meter +15%',{ult:.15}]],
+ [MASTERY_ROW3[ty],['Master edge','weapon damage +8%',{dmg:.08}],['Second wind','each weapon hit heals 2 HP',{drain:2}]]];}
+/* ---------- save data ---------- */
+function SD(){const d=A.save.data;if(!d.skills||typeof d.skills!=='object')d.skills={t:{}};if(!d.skills.t)d.skills.t={};return d.skills;}
+function TR(id){const s=SD();return s.t[id]||(s.t[id]={n:[0,0,0,0,0,0,0,0,0],pts:1,prog:0,spent:0});}
+const W2=()=>(A.save.data&&A.save.data.world)||{};
+const styleId=()=>{const w=W2();return w.equipTech&&w.tech&&w.tech[w.equipTech]?w.equipTech:'street';};
+const techName=id=>{try{if(id==='street')return 'Street Style';const T=A.world2&&A.world2.TECH;return T&&T[id]?T[id][0]:id;}catch(e){return id;}};
+const moveName=(f,k)=>{try{return f.moves[k].name;}catch(e){return 'Special '+KEYS[k];}};
+/* trees for a fighter */
+function trees(f){if(!f)return [];const mi=f.mi,L=[];
+ for(let k=0;k<3;k++){const fam=LV.famFor(mi,k);L.push({id:'sp.'+mi+'.'+k,kind:'sp',k,tab:'SPIRIT '+KEYS[k],name:moveName(f,k),sub:'spirit · '+fam+' family · points: this special landing',nodes:spiritNodes(fam)});}
+ const sid=styleId();L.push({id:'st.'+sid,kind:'st',tab:'STYLE',name:techName(sid),sub:'fighting technique · regular hits · points: regular hits landing',nodes:STYLE_NODES,tech:sid});
+ L.push({id:'wp.'+mi,kind:'wp',tab:'WEAPON',name:((typeof MECH_INFO!=='undefined'&&MECH_INFO[mi])?MECH_INFO[mi].name:'Mech')+' arms',sub:'weapon · streak attack on V (LV 8) · points: weapon attacks landing',nodes:WEAPON_NODES});
+ const ty=wType(mi);L.push({id:'wm.'+ty,kind:'wm',tab:'MASTERY',name:TYPE_NAME[ty]+' mastery',sub:'weapon-type mastery · shared by every '+TYPE_NAME[ty].toLowerCase()+' fighter · points: weapon attacks',nodes:masteryNodes(ty)});return L;}
+/* row 3 gate = a shrine meditation breakthrough (style tree: on that technique; other trees: any breakthrough) */
+function anyBreak(){const w=W2();for(const id in (w.tech||{}))if(w.tech[id]&&(w.tech[id].adv||w.tech[id].bt))return true;return false;}
+function row3Open(tree){const w=W2();if(tree.kind==='st'&&tree.tech!=='street')return !!(w.tech&&w.tech[tree.tech]&&(w.tech[tree.tech].adv||w.tech[tree.tech].bt));return anyBreak();}
+function rowOpen(tree,r){const d=TR(tree.id);if(r===0)return true;const prev=d.n.slice((r-1)*3,r*3).some(Boolean);if(!prev)return false;return r<2||row3Open(tree);}
+function canLearn(tree,i){const d=TR(tree.id);return !d.n[i]&&d.pts>0&&rowOpen(tree,(i/3)|0);}
+function learn(tree,i){if(!canLearn(tree,i))return false;const d=TR(tree.id);d.n[i]=1;d.pts--;d.spent++;A.save.dirty('skill');return true;}
+/* effect lookup: sum of every learned node's numbers in a tree */
+const EFC={};function eff(id,nodes){const d=SD().t[id];if(!d)return null;const key=id+':'+d.n.join('');if(EFC[id]&&EFC[id].k===key)return EFC[id].e;const e={};
+ d.n.forEach((on,i)=>{if(!on)return;const fx=nodes[(i/3)|0][i%3][2];for(const k in fx)e[k]=(e[k]||0)+fx[k];});EFC[id]={k:key,e};return e;}
+const SPN={};function effSp(f,k){const id='sp.'+f.mi+'.'+k;if(!SPN[id])SPN[id]=spiritNodes(LV.famFor(f.mi,k));return eff(id,SPN[id]);}
+const effSt=()=>{const id='st.'+styleId();return eff(id,STYLE_NODES);};
+const effWp=f=>eff('wp.'+f.mi,WEAPON_NODES);const MN={};const effWm=f=>{const ty=wType(f.mi);return eff('wm.'+ty,MN[ty]||(MN[ty]=masteryNodes(ty)));};
+function addE(a,b){if(!b)return a;for(const k in b)a[k]=(a[k]||0)+b[k];return a;}
+/* what is this fighter doing right now */
+function kindOf(f){const a=f&&f.act;if(!a||!a.def)return null;const k=f.moves?f.moves.indexOf(a.def):-1;if(k>=0)return {kind:'sp',k};
+ try{if(A.vx&&A.vx.opt(f,'V')===a.def)return {kind:'wp'};if(A.vx&&A.vx.opt(f,'B')===a.def)return {kind:'ult'};}catch(e){}return {kind:'jab'};}
+function effNow(f){const c=kindOf(f);if(!c)return null;let e={};if(c.kind==='sp')e=addE(e,effSp(f,c.k));else if(c.kind==='wp')e=addE(addE(e,effWp(f)),effWm(f));else if(c.kind==='jab')e=addE(e,effSt());else return null;return {c,e};}
+const SKX=f=>f._sk||(f._sk={jabT:-9,blockT:-9,wpN:0,wpT:-9,odOn:false});
+/* ---------- combat hooks ---------- */
+const _dm=A.dmgMul;A.dmgMul=function(f){let m=_dm(f);if(!isAdv()||!f)return m;const x=effNow(f);if(!x)return m;const e=x.e,s=SKX(f);
+ if(e.dmg)m*=1+e.dmg;
+ if(x.c.kind==='sp'&&e.trait){try{const id=LV.rec(f.mi).picks[LV.SLOT_LV[x.c.k]];const md=id&&LV.FX[id.split('.')[1]];m*=md&&md.dm>1?1+(md.dm-1)*.5:1.03;}catch(err){}}
+ if(x.c.kind==='jab'){if(e.counter&&t()-s.blockT<1)m*=1+e.counter;if(e.fin&&f.act&&f.act.def&&f.act.def.hits&&f._skLastHit)m*=1+e.fin;}
+ if(x.c.kind==='wp'){if(e.art&&t()-s.jabT<1)m*=1+e.art;const st=effSt();if(st&&st.art&&t()-s.wpStartJab<1)m*=1+st.art;if(e.counterW&&t()-s.blockT<1)m*=1+e.counterW;if(e.od&&s.odOn)m*=1+e.od;}
+ return m;};
+const _om=A.onMove;A.onMove=function(f,i){const r=_om.apply(this,arguments);if(!isAdv()||!f||i<0||i>2)return r;const e=effSp(f,i)||{},s=SKX(f);
+ if(e.cd)f.cd[i]*=1-e.cd;const st=effSt();if(st&&st.cancel&&t()-s.jabT<.6)f.cd[i]=Math.max(0,f.cd[i]-st.cancel);if(e.ifr)f.iframe=Math.max(f.iframe||0,e.ifr);return r;};
+if(A.vx&&A.vx.use){const _vu=A.vx.use;A.vx.use=function(f,slot){const r=_vu.apply(this,arguments);if(r&&slot==='V'&&isAdv()&&f){const e=addE(addE({},effWp(f)),effWm(f)),s=SKX(f);
+ if(e.vcd&&f._vx)f._vx.V=t()+(f._vx.V-t())*(1-e.vcd);if(e.ifr)f.iframe=Math.max(f.iframe||0,e.ifr);s.wpN++;s.odOn=!!(e.od&&s.wpN%3===0);s.wpT=t();s.wpStartJab=s.jabT;}return r;};}
+const BL=[];/* bleed / echo queue: {e,f,d,t,n,gap} — never lethal on its own (leaves 1 HP), never on boss proxies */
+const safeE=e=>e&&!e.dead&&!e.boss2&&e.type!=='B'&&e.type!=='N';
+function tickQ(){for(let i=BL.length-1;i>=0;i--){const q=BL[i];if(t()<q.t)continue;const e=q.e;if(!safeE(e)||!isAdv()){BL.splice(i,1);continue;}
+  const d=Math.max(1,Math.round(q.d));const nh=Math.max(1,e.hp-d);const dealt=e.hp-nh;e.hp=nh;e.aggro=1;if(ST[q.f.side])ST[q.f.side].dmg+=dealt;try{popDmg(e.chest(),dealt,false);}catch(err){}
+  if(--q.n<=0)BL.splice(i,1);else q.t=t()+q.gap;}}
+if(typeof advHit==='function'){const _ah=advHit;advHit=function(f,h){if(!isAdv()||!f||f.mi==null||!h)return _ah.apply(this,arguments);const x=effNow(f);
+  if(!x)return _ah.apply(this,arguments);const e=x.e,s=SKX(f);let h2=h;
+  if(e.rng||e.rngAdd||e.kb||e.fin){h2=Object.assign({},h);if(e.rng)h2.range=h.range*(1+e.rng);if(e.rngAdd)h2.range=h2.range+e.rngAdd;if(e.kb&&h.kb)h2.kb=h.kb*(1+e.kb);}
+  if(x.c.kind==='jab'){const hs=f.act&&f.act.def&&f.act.def.hits;f._skLastHit=!!(hs&&hs.length>1&&h===hs[hs.length-1]);if(e.fin&&f._skLastHit&&h.kb)h2=Object.assign({},h2,{kb:(h2.kb||h.kb)*(1+e.fin)});}
+  const before=new Map();for(const q of ADV.en)if(!q.dead)before.set(q,q.hp);
+  const r=_ah.call(this,f,h2);f._skLastHit=false;let landed=0,dealtSum=0;
+  for(const [q,hp] of before){const dd=hp-q.hp;if(!(dd>0))continue;landed++;dealtSum+=dd;
+   if(e.stun&&!q.dead&&q.type!=='B'&&q.type!=='N')q.stun=Math.max(q.stun||0,e.stun);
+   if(e.pull&&!q.dead&&q.type!=='B'&&q.type!=='N'){const dx=f.x-q.x,dz=f.z-q.z,d=Math.hypot(dx,dz)||1;const k=Math.min(e.pull,Math.max(0,d-1.2))/d;q.x+=dx*k;q.z+=dz*k;}
+   if(e.bleed&&safeE(q))BL.push({e:q,f,d:e.bleed,t:t()+.5,n:3,gap:.5});
+   if(e.echo&&safeE(q))BL.push({e:q,f,d:dd*e.echo,t:t()+.45,n:1,gap:0});}
+  if(landed){if(e.drain&&!(typeof perkNoHeal==='function'&&perkNoHeal(f))){f.hp=Math.min(f.hpMax,f.hp+e.drain);}
+   if(e.ult&&f._vx&&A.vx){f._vx.ult=Math.min(A.vx.meterMax(f),(f._vx.ult||0)+dealtSum*e.ult);}
+   if(x.c.kind==='jab'){s.jabT=t();if(e.streak&&f._vx&&f._vx.V>t())f._vx.V=Math.max(t(),f._vx.V-e.streak*landed);}
+   gainPts(f,x.c,landed);}
+  return r;};}
+/* damage taken: Recovery (after weapon attack), Faster parries (guarding), Thorns; remember guarded hits for Counter jab */
+const _hm=A.hurtMul;A.hurtMul=function(f){let m=_hm(f);if(!isAdv()||!f)return m;const s=SKX(f);const w=addE(addE({},effWp(f)),effWm(f));
+ if(w.guard&&t()-s.wpT<2)m*=1-w.guard;if(f.block){s.blockT=t();if(w.blockDr)m*=1-w.blockDr;}return m;};
+if(typeof advHurt==='function'){const _hu=advHurt;advHurt=function(f,dmg,e){const r=_hu.apply(this,arguments);try{if(isAdv()&&f&&f.block&&e&&safeE(e)){const w=addE(addE({},effWp(f)),effWm(f));if(w.thorns){const d=Math.max(1,Math.round(dmg*w.thorns));e.hp=Math.max(1,e.hp-d);}}}catch(err){}return r;};}
+/* points from use */
+const NEED={sp:8,st:30,wp:4,wm:6};
+function gainPts(f,c,n){const add=(id,need)=>{const d=TR(id);d.prog+=n;while(d.prog>=need){d.prog-=need;d.pts++;A.save.dirty('skillpt');if(f.side===0||G.advP2)try{A.toast&&A.toast('✦ SKILL POINT',false,treeLabel(id)+' · press K');}catch(e){}}};
+ if(c.kind==='sp')add('sp.'+f.mi+'.'+c.k,NEED.sp);else if(c.kind==='jab')add('st.'+styleId(),NEED.st);else if(c.kind==='wp'){add('wp.'+f.mi,NEED.wp);add('wm.'+wType(f.mi),NEED.wm);}}
+function treeLabel(id){const p=id.split('.');if(p[0]==='sp')return 'Spirit '+KEYS[+p[2]];if(p[0]==='st')return 'Style';if(p[0]==='wp')return 'Weapon';return 'Mastery';}
+/* tempo: regular-hit chain plays faster (per sim frame) */
+if(typeof advAmbient==='function'){const _aa=advAmbient;advAmbient=function(dt){_aa.apply(this,arguments);SIM+=Math.min(.1,dt||0);try{if(!isAdv())return;tickQ();const st=effSt();if(st&&st.tempo)for(const f of F){if(!f||!f.act)continue;const c=kindOf(f);if(c&&c.kind==='jab')f.act.t+=(dt||0)*st.tempo;}}catch(e){if(!SK.err){SK.err=e;console.warn('[skill]',e);}}};}
+/* ---------- shrine reset ---------- */
+function nearShrine(f){if(!f)return false;const pts=[];try{const R=A.world2;if(R&&R.on){for(const n of R.npcs||[])if(n.kind!=='master')pts.push([n.x,n.z]);}else if(A.masters&&A.masters.shrine){const a=A.masters.shrine.at||{x:30,z:34.5};pts.push([a.x,a.z]);}}catch(e){}
+ return pts.some(([x,z])=>Math.hypot(f.x-x,f.z-z)<5);}
+function resetTree(tree){const d=TR(tree.id);let back=0;d.n=d.n.map(v=>{if(v)back++;return 0;});d.pts+=back;d.spent=0;A.save.dirty('skillreset');return back;}
+/* ---------- UI ---------- */
+const SK=A.skill={open:false,trees,TR,canLearn,learn,rowOpen,row3Open,effNow,effSp,effSt,effWp,effWm,nearShrine,resetTree,kindOf};
+const st=document.createElement('style');st.id='skCss';st.textContent=`
+#sktree{position:fixed;inset:0;z-index:2147482150;display:none;align-items:center;justify-content:center;background:radial-gradient(120% 90% at 50% 10%,rgba(42,16,80,.93),rgba(8,6,24,.96) 50%,rgba(3,4,10,.97));font-family:Bahnschrift,"DIN Alternate","Arial Narrow",Arial,sans-serif;color:#fff}
+#sktree.on{display:flex}#sktree .bx{width:min(980px,96vw);max-height:96vh;overflow:auto;padding:14px 18px 12px;box-sizing:border-box;position:relative}
+#sktree .hd{display:flex;align-items:center;gap:14px;margin-bottom:8px}#sktree h1{margin:0;font:italic 900 30px/1 Bahnschrift,Arial;background:linear-gradient(90deg,#fff,#ffd1ec 30%,#ff2ea0 62%,#29e6ff);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 12px rgba(255,46,160,.5))}
+#sktree .who{font:800 12px system-ui;color:#cfe8ff;letter-spacing:.06em}#sktree .who b{color:#ffd040}
+#sktree .cls{position:absolute;top:12px;right:14px;font:italic 900 13px Bahnschrift,Arial;letter-spacing:.06em;color:#fff;padding:9px 16px;border:1.5px solid rgba(255,255,255,.55);background:linear-gradient(180deg,rgba(255,46,160,.88),rgba(120,10,80,.92));clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);cursor:pointer;box-shadow:0 0 18px rgba(255,46,160,.6)}
+#sktree .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 10px}#sktree .tab{position:relative;font:italic 900 12px Bahnschrift,Arial;letter-spacing:.06em;padding:8px 13px;color:#cfd6f5;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.16);clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);cursor:pointer}
+#sktree .tab.on{color:#04121a;background:linear-gradient(90deg,#29e6ff,#b8f7ff);border-color:#fff}#sktree .tab i{font-style:normal;margin-left:6px;padding:0 5px;border-radius:5px;background:#ff2ea0;color:#fff;font-size:10px}
+#sktree .tn{font:italic 900 20px Bahnschrift,Arial;text-shadow:0 0 12px rgba(255,46,160,.55)}#sktree .ts{font:600 11.5px system-ui;color:#9fb4d8;margin:2px 0 8px}#sktree .ts b{color:#ffd040}
+#sktree .grid{display:grid;grid-template-columns:70px repeat(3,1fr);gap:9px;align-items:stretch}
+#sktree .rl{display:flex;flex-direction:column;justify-content:center;font:900 11px system-ui;letter-spacing:.1em;color:#8aa0c8;text-align:center}#sktree .rl small{font:700 9px system-ui;color:#ff8ad0;letter-spacing:.04em;margin-top:3px}
+#sktree .nd{position:relative;text-align:left;font:inherit;color:#fff;padding:10px 12px 10px 44px;min-height:66px;cursor:pointer;background:linear-gradient(165deg,rgba(70,22,120,.92),rgba(24,10,54,.95) 50%,rgba(8,10,28,.97));border:1.5px solid rgba(255,208,64,.35);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px)}
+#sktree .nd::before{content:"";position:absolute;left:12px;top:50%;width:20px;height:20px;margin-top:-10px;transform:rotate(45deg);border-radius:4px;background:#141632;border:2px solid #3a4070}
+#sktree .nd.got::before{background:linear-gradient(135deg,#ffe680,#c88a10);border-color:#fff3c0;box-shadow:0 0 12px #ffd040}#sktree .nd.can::before{background:linear-gradient(135deg,#ff6fc0,#c2167a);border-color:#fff}
+#sktree .nd b{display:block;font:italic 900 14px/1.1 Bahnschrift,Arial}#sktree .nd span{display:block;font:600 11px/1.3 system-ui;color:#d6dcf5;margin-top:3px}
+#sktree .nd.lock{opacity:.38}#sktree .nd.got{border-color:#ffd040}#sktree .nd.sel{border-color:#fff;box-shadow:0 0 0 2px #ff2ea0,0 0 26px rgba(255,46,160,.7)}
+#sktree .ft{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;font:600 11px system-ui;color:#9a93bd;flex-wrap:wrap}
+#sktree .ft button{font:italic 900 12px Bahnschrift,Arial;padding:8px 14px;border:0;cursor:pointer;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)}#sktree .lrn{background:linear-gradient(90deg,#29e6ff,#a8f6ff);color:#04121a}#sktree .rst{background:#ffffff22;color:#fff}#sktree .rst.ok{background:linear-gradient(90deg,#ffc23a,#ffe680);color:#2a1600}
+#sktree .msg{min-height:16px;font:800 12px system-ui;color:#ffb3d9}
+#skBtn{position:fixed;right:12px;z-index:13;display:none;padding:9px 13px;border-radius:12px;font:900 13px/1 system-ui,sans-serif;color:#04121a;border:1.5px solid #fff;background:linear-gradient(180deg,#b8f7ff,#29e6ff 60%,#0fa8c8);box-shadow:0 0 16px rgba(41,230,255,.55),inset 0 1px 0 rgba(255,255,255,.7);cursor:pointer;pointer-events:auto}
+#skBtn kbd{display:inline-block;margin-left:8px;padding:1px 7px;border-radius:5px;font:900 11px/16px system-ui;background:rgba(0,0,0,.2);border:1px solid currentColor}#skBtn i{font-style:normal;position:absolute;top:-8px;left:-8px;padding:2px 6px;border-radius:7px;background:#ff2ea0;color:#fff;font:900 9.5px system-ui;box-shadow:0 0 10px #ff2ea0}
+body[data-mode=adv] #skBtn.on{display:block}
+@media (max-width:600px){#sktree .bx{padding:10px 8px}#sktree h1{font-size:22px}#sktree .grid{grid-template-columns:34px repeat(3,1fr);gap:5px}#sktree .nd{padding:8px 6px 8px 8px;min-height:84px}#sktree .nd::before{display:none}#sktree .nd b{font-size:11.5px}#sktree .nd span{font-size:9.5px}
+ #sktree .rl{font-size:9px}#sktree .rl small{display:none}#sktree .tab{padding:6px 8px;font-size:10px}#sktree .cls{top:8px;right:8px;padding:7px 11px;font-size:11px}#sktree .ft span.k{display:none}#sktree .hd{padding-right:88px;flex-wrap:wrap;gap:2px 10px}#skBtn{padding:7px 9px;font-size:11px}#skBtn kbd{display:none}}`;
+document.head.appendChild(st);
+let ov=null,btn=null,ui={side:0,tab:0,sel:0,msg:''},pausedBefore=false;
+function dom(){if(ov)return;ov=document.createElement('div');ov.id='sktree';document.body.appendChild(ov);
+ ov.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el)return;e.stopPropagation();const a=el.dataset.a;
+  if(a==='close')close();else if(a==='tab'){ui.tab=+el.dataset.i;ui.sel=0;ui.msg='';draw();}else if(a==='node'){const i=+el.dataset.i;if(ui.sel===i)tryLearn();else{ui.sel=i;ui.msg='';draw();}}else if(a==='learn')tryLearn();else if(a==='reset')tryReset();else if(a==='side'){ui.side=1-ui.side;ui.tab=Math.min(ui.tab,5);draw();}});
+ btn=document.createElement('div');btn.id='skBtn';btn.innerHTML='✦ SKILLS <kbd>K</kbd>';btn.title='Skill trees (K · controller Y from the pause menu)';btn.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();openSk();});document.body.appendChild(btn);}
+const curF=()=>{const L=(()=>{try{return advActive();}catch(e){return F;}})();return L.find(f=>f&&f.side===ui.side)||L[0];};
+function draw(){const f=curF();const T=trees(f);if(!T.length)return;ui.tab=Math.max(0,Math.min(T.length-1,ui.tab));const tr=T[ui.tab],d=TR(tr.id);const lvl=(()=>{try{return LV.rec(f.mi).lv;}catch(e){return 1;}})();
+ const shr=nearShrine(f);const need=NEED[tr.kind];
+ let h='<div class="bx" role="dialog" aria-label="Skill trees"><button type="button" class="cls" data-a="close" title="Close (K · Esc · controller B)">✕ CLOSE</button><div class="hd"><h1>✦ SKILL TREES</h1><div class="who">'+(G.advP2?'<span data-a="side" style="cursor:pointer;text-decoration:underline">P'+(ui.side+1)+' ⇄</span> · ':'')+(MECH_INFO[f.mi]||{}).name+' · <b>LV '+lvl+'</b></div></div>';
+ h+='<div class="tabs">'+T.map((x,i)=>{const p=TR(x.id).pts;return '<span class="tab'+(i===ui.tab?' on':'')+'" data-a="tab" data-i="'+i+'">'+x.tab+(p>0?'<i>'+p+'</i>':'')+'</span>';}).join('')+'</div>';
+ h+='<div class="tn">'+tr.name+'</div><div class="ts">'+tr.sub+' · <b>'+d.pts+' point'+(d.pts===1?'':'s')+'</b> to spend · next point '+Math.floor(d.prog)+' / '+need+'</div><div class="grid">';
+ for(let r=0;r<3;r++){const open=rowOpen(tr,r);h+='<div class="rl">ROW '+(r+1)+(r===2?'<small>'+(row3Open(tr)?'advanced · open':'🔒 needs a shrine breakthrough')+'</small>':(!open?'<small>learn a row '+r+' node</small>':''))+'</div>';
+  for(let c=0;c<3;c++){const i=r*3+c,n=tr.nodes[r][c];const got=d.n[i],can=canLearn(tr,i);h+='<button type="button" class="nd'+(got?' got':can?' can':open?'':' lock')+(i===ui.sel?' sel':'')+'" data-a="node" data-i="'+i+'"><b>'+n[0]+(got?' ✓':'')+'</b><span>'+n[1]+'</span></button>';}}
+ h+='</div><div class="msg">'+(ui.msg||'')+'</div><div class="ft"><span class="k">←→↑↓ / Ⓓ-pad choose · Enter / Ⓐ learn · Q E / LB RB switch tree · R reset · K / Esc / Ⓑ close</span><span><button type="button" class="rst'+(shr?' ok':'')+'" data-a="reset" title="Free at any shrine">'+(shr?'↺ RESET FREE (shrine)':'↺ RESET · at a shrine')+'</button> <button type="button" class="lrn" data-a="learn">LEARN ▶</button></span></div></div>';
+ ov.innerHTML=h;}
+function tryLearn(){const f=curF();const tr=trees(f)[ui.tab];if(!tr)return;const i=ui.sel,d=TR(tr.id);
+ if(d.n[i])ui.msg='Already learned';else if(!rowOpen(tr,(i/3)|0))ui.msg=((i/3)|0)===2&&!row3Open(tr)?'🔒 Row 3 opens with a shrine meditation breakthrough':'🔒 Learn a node in the row above first';else if(d.pts<=0)ui.msg='No points · earn them by using '+(tr.kind==='sp'?'this special':tr.kind==='st'?'regular hits':'weapon attacks');
+ else{learn(tr,i);ui.msg='✓ '+tr.nodes[(i/3)|0][i%3][0]+' learned';try{sfx('zap');}catch(e){}}draw();}
+function tryReset(){const f=curF();const tr=trees(f)[ui.tab];if(!tr)return;if(!nearShrine(f)){ui.msg='Resets are free at any shrine · stand next to one and press R';draw();return;}const n=resetTree(tr);ui.msg='↺ '+n+' point'+(n===1?'':'s')+' refunded';draw();}
+function openSk(){dom();if(SK.open)return true;if(!isAdv()){return false;}if(G.ui==='menu'&&A.f1&&A.f1.resume)A.f1.resume();if(G.ui||(window.SHOP&&SHOP.open)||(A.ui&&A.ui.open))return false;
+ const b=document.getElementById('w2board');if(b&&b.classList.contains('on')&&A.world2&&A.world2.closeBoard)A.world2.closeBoard();
+ SK.open=true;pausedBefore=!!G.paused;pause(true);ui.msg='';draw();ov.classList.add('on');return true;}
+function close(){if(!SK.open)return;SK.open=false;ov.classList.remove('on');pause(pausedBefore);A.save.dirty('skill');}
+SK.openSk=openSk;SK.close=close;SK.draw=draw;SK.ui=ui;
+addEventListener('keydown',e=>{const c=e.code;
+ if(SK.open){e.preventDefault();e.stopImmediatePropagation();if(e.repeat&&!c.startsWith('Arrow'))return;const s=ui.sel;
+  if(c==='Escape'||c==='KeyK'||c==='Backspace'){close();return;}
+  if(c==='ArrowRight'||c==='KeyD')ui.sel=s%3<2?s+1:s-2;else if(c==='ArrowLeft'||c==='KeyA')ui.sel=s%3>0?s-1:s+2;else if(c==='ArrowDown'||c==='KeyS')ui.sel=(s+3)%9;else if(c==='ArrowUp'||c==='KeyW')ui.sel=(s+6)%9;
+  else if(c==='KeyE'||c==='Tab'||c==='BracketRight'){ui.tab=(ui.tab+1)%6;ui.sel=0;}else if(c==='KeyQ'||c==='BracketLeft'){ui.tab=(ui.tab+5)%6;ui.sel=0;}
+  else if(/^Digit[1-6]$/.test(c)){ui.tab=+c.slice(5)-1;ui.sel=0;}else if(c==='Enter'||c==='Space'||c==='NumpadEnter'){tryLearn();return;}else if(c==='KeyR'){tryReset();return;}else if(c==='KeyP'&&G.advP2){ui.side=1-ui.side;}else return;ui.msg='';draw();return;}
+ if(c!=='KeyK'||e.repeat||e.defaultPrevented)return;if(!isAdv())return;
+ /* K is P2's "forward" key in co-op: then K only opens the trees from the pause menu */
+ const p2k=G.advP2&&typeof BINDS!=='undefined'&&BINDS[1]&&Object.values(BINDS[1]).includes('KeyK');
+ if(G.ui==='menu'||(!p2k&&!G.ui&&!G.paused)){e.preventDefault();e.stopImmediatePropagation();openSk();}},true);
+/* HUD button under the MAP button, with unspent-points badge */
+function tick(){requestAnimationFrame(tick);dom();const show=isAdv()&&!G.ui;btn.classList.toggle('on',show);if(!show)return;const mb=document.getElementById('w2btn');let top=330;if(mb){const r=mb.getBoundingClientRect();if(r.height>0)top=r.bottom+8;}btn.style.top=top+'px';
+ const f=curF();let p=0;try{for(const tr of trees(f))p+=TR(tr.id).pts;}catch(e){}const k=p>0?'<i>+'+p+'</i>':'';if(btn._k!==k){btn._k=k;btn.innerHTML=k+'✦ SKILLS <kbd>K</kbd>';}}
+requestAnimationFrame(tick);
+})();
+
+</script>
+<script>/* adv2_f1.js */
+/* ---- Neon Brawlers · Deploy F1: in-game PAUSE menu with RESUME / close, and a findable Adventure MAP (Neko-Rail) ----
+   MENU button / Esc / controller Start during a game -> PAUSE card: ▶ RESUME (Esc · Ⓑ · Start), 🗺 MAP · NEKO-RAIL (T), controls, fullscreen, new game.
+   Adventure: Esc and controller Start now pause instead of restarting the adventure (Versus keeps Esc = restart round).
+   HUD: the MAP button shows its key and a NEW badge + pointer hint when a region has opened that you haven't visited. */
+(function(){'use strict';const A=window.ADV2=window.ADV2||{};if(typeof G==='undefined'||typeof showMenu!=='function')return;
+const F1=A.f1={live:null,resumable:false};
+const W=()=>A.world2;
+const isAdv=()=>typeof ADV!=='undefined'&&ADV.on&&G.mode==='adv';
+const vis=id=>{const e=document.getElementById(id);return !!(e&&(e.classList.contains('on')||getComputedStyle(e).display!=='none'&&e.id!=='w2btn'));};
+function otherOverlay(){if(window.SHOP&&SHOP.open)return true;if(A.ui&&A.ui.open)return true;if(A.skill&&A.skill.open)return true;const b=document.getElementById('w2board');if(b&&b.classList.contains('on'))return true;const k=document.getElementById('w2awk');if(k&&k.classList.contains('on'))return true;return false;}
+/* ---------- css ---------- */
+const st=document.createElement('style');st.id='f1Css';st.textContent=`
+#ov .card.f1p{position:relative}
+#ov .f1x{position:absolute;top:10px;right:10px;width:38px;height:38px;border-radius:50%;border:1.5px solid rgba(255,255,255,.55);background:radial-gradient(circle at 35% 30%,#ff8ad0,#ff2ea0 55%,#7a0a4e);color:#fff;font:900 18px/1 system-ui,sans-serif;cursor:pointer;box-shadow:0 0 16px rgba(255,46,160,.7)}
+#ov .f1tag{font:italic 900 12px Bahnschrift,Arial,sans-serif;letter-spacing:.24em;color:#29e6ff;margin:-2px 0 8px}
+#ov .mb.f1r{background:linear-gradient(90deg,#29e6ff,#b8f7ff)!important;color:#04121a!important;border-color:#fff!important;box-shadow:0 0 22px rgba(41,230,255,.65)}
+#ov .mb.f1m{background:linear-gradient(90deg,#ffc23a,#ffe680)!important;color:#2a1600!important;border-color:#fff3c0!important;box-shadow:0 0 18px rgba(255,194,58,.55)}
+#ov .mb kbd,#w2btn kbd,#f1hint kbd{display:inline-block;margin-left:8px;padding:1px 7px;border-radius:5px;font:900 11px/16px system-ui,sans-serif;background:rgba(0,0,0,.28);color:inherit;border:1px solid currentColor;vertical-align:1px}
+#ov .mb.f1s{background:linear-gradient(90deg,#29e6ff55,#ff2ea055)!important;color:#fff!important;border-color:#b8f7ff!important;box-shadow:0 0 16px rgba(41,230,255,.4)}
+body[data-f1p] #shcc{visibility:hidden!important}
+#ov .f1sep{margin:10px 0 2px;font:800 10.5px system-ui,sans-serif;letter-spacing:.2em;color:#9a93bd}
+#w2btn{padding:9px 13px!important;border-radius:12px!important;font:900 13px/1 system-ui,sans-serif!important;color:#2a1600!important;border:1.5px solid #fff3c0!important;background:linear-gradient(180deg,#ffe680,#ffc23a 55%,#d89a10)!important;box-shadow:0 0 16px rgba(255,194,58,.6),inset 0 1px 0 rgba(255,255,255,.7)!important}
+#w2btn .nw{display:none;position:absolute;top:-8px;left:-8px;padding:2px 6px;border-radius:7px;background:#ff2ea0;color:#fff;font:900 9.5px system-ui;letter-spacing:.06em;box-shadow:0 0 10px #ff2ea0;animation:f1p 1s infinite}
+#w2btn.new .nw{display:block}
+#f1hint{position:fixed;z-index:13;display:none;pointer-events:none;padding:6px 10px;border-radius:10px;background:rgba(14,10,30,.88);border:1px solid #ff2ea0aa;color:#fff;font:800 11.5px/1.25 system-ui,sans-serif;max-width:min(260px,58vw);text-align:right;box-shadow:0 0 14px rgba(255,46,160,.45)}
+#f1hint b{color:#ffc23a}#f1hint:after{content:"";position:absolute;right:-9px;top:50%;margin-top:-7px;border:7px solid transparent;border-left:9px solid #ff2ea0;border-right:0}
+#f1hint.on{display:block;animation:f1n 1.1s ease-in-out infinite}
+@keyframes f1p{50%{transform:scale(1.12);filter:brightness(1.3)}}@keyframes f1n{50%{transform:translateX(-6px)}}
+@media (max-width:600px){#w2btn{padding:7px 9px!important;font-size:11px!important}#w2btn kbd{display:none}#f1hint{font-size:10.5px;max-width:52vw}}
+`;document.head.appendChild(st);
+/* ---------- track the running game ---------- */
+const _sm=startMode;startMode=function(){const r=_sm.apply(this,arguments);F1.live={mode:G.mode,advP2:!!G.advP2,sel:[G.sel[0],G.sel[1]]};return r;};
+try{if(window.__game)__game.startMode=startMode;}catch(e){}
+/* ---------- pause menu = mode menu + RESUME ---------- */
+const _menu=showMenu;
+showMenu=function(){const L=F1.live,inGame=!!(L&&G.ov&&(G.phase||typeof ADV!=='undefined'));const r=_menu.apply(this,arguments);F1.resumable=false;if(!inGame)return r;
+ const card=G.ov.querySelector('.card');if(!card)return r;F1.resumable=true;card.classList.add('f1p');const adv=L.mode==='adv';
+ const h1=card.querySelector('h1');if(h1)h1.insertAdjacentHTML('afterend','<div class="f1tag">PAUSED · '+(adv?(L.advP2?'ADVENTURE CO-OP':'ADVENTURE SOLO'):L.mode==='vs1'?'VERSUS CPU':'2 PLAYERS')+'</div>');
+ const sub=card.querySelector('.sub');if(sub)sub.remove();
+ const first=card.querySelector('button.mb');
+ first.insertAdjacentHTML('beforebegin','<button class="mb big2 f1r" id="f1Res" type="button">▶ RESUME<kbd>Esc</kbd></button>'+(adv?'<button class="mb f1m" id="f1Map" type="button">🗺 MAP · NEKO-RAIL<kbd>T</kbd></button>'+(A.skill?'<button class="mb f1s" id="f1Sk" type="button">✦ SKILL TREES<kbd>K</kbd><kbd>Ⓨ</kbd></button>':''):'')+'<div class="f1sep">NEW GAME</div>');
+ card.insertAdjacentHTML('afterbegin','<button class="f1x" id="f1X" type="button" title="Close menu (Esc · controller B / Start)" aria-label="Close">✕</button>');
+ const note=card.querySelector('.note');if(note)note.innerHTML='Esc · controller Ⓑ / Start = resume'+(adv?' · T / View = map · K / Ⓨ = skill trees':'')+(note.textContent.indexOf('P1:')>=0?'<br>'+note.innerHTML.replace(' · Esc restarts',''):'');
+ card.querySelector('#f1Res').onclick=resume;card.querySelector('#f1X').onclick=resume;const m=card.querySelector('#f1Map');if(m)m.onclick=()=>{resume();openMap();};const sk=card.querySelector('#f1Sk');if(sk)sk.onclick=()=>{A.skill.openSk();};
+ return r;};
+try{if(window.__game)__game.showMenu=showMenu;}catch(e){}
+function resume(){const L=F1.live;if(!L||!F1.resumable)return false;F1.resumable=false;
+ G.mode=L.mode;G.advP2=L.advP2;G.sel[0]=L.sel[0];G.sel[1]=L.sel[1];try{syncBinds();}catch(e){}
+ document.body.dataset.mode=G.mode;if(G.mode==='adv'&&!G.advP2)document.body.dataset.solo='1';else delete document.body.dataset.solo;
+ G.ov.style.display='none';G.ov.innerHTML='';G.ui=null;pause(false);try{updHelp();}catch(e){}return true;}
+F1.resume=resume;
+function openMap(){const w=W();if(!w||!w.openBoard||!isAdv())return false;return w.openBoard();}
+F1.openMap=openMap;
+/* ---------- keys: Esc closes the pause menu; in Adventure Esc / Start opens it (no more accidental restart) ---------- */
+addEventListener('keydown',e=>{if(e.defaultPrevented)return;const c=e.code;
+ if(G.ui==='menu'&&F1.resumable){if(c==='Escape'){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat)resume();return;}
+  if(c==='KeyT'&&F1.live&&F1.live.mode==='adv'){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat){resume();openMap();}return;}return;}
+ if(c==='Escape'&&!e.repeat&&!G.ui&&isAdv()&&!G.paused&&!otherOverlay()&&F1.live){e.preventDefault();e.stopImmediatePropagation();showMenu();}},true);
+/* help line: Adventure Esc = pause */
+if(typeof updHelp==='function'){const _uh=updHelp;updHelp=function(){const r=_uh.apply(this,arguments);try{const h=document.getElementById('help');if(h&&bindSet()==='adv')h.textContent=h.textContent.replace(/Esc restart$/,'Esc pause · T map · K skills');}catch(e){}return r;};try{updHelp();}catch(e){}}
+/* ---------- MAP button NEW badge + pointer hint ---------- */
+let hint=null,lastK='';
+function newRegion(){const w=W();if(!w||!w.ORDER)return null;const d=A.save&&A.save.data;const wv=(d&&d.world&&d.world.visits)||{};for(const id of w.ORDER){if(w.unlocked(id)&&!wv[id]&&w.id!==id){let n=id;try{n=A.regions&&A.regions.get?A.regions.get(id).name:id;}catch(e){}return {id,name:(n||id).toUpperCase()};}}return null;}
+function tick(){requestAnimationFrame(tick);const pm=G.ui==='menu'&&F1.resumable;if(document.body.hasAttribute('data-f1p')!==pm)document.body.toggleAttribute('data-f1p',pm);const b=document.getElementById('w2btn');if(!b)return;
+ if(!b.querySelector('.nw'))b.insertAdjacentHTML('afterbegin','<span class="nw">NEW</span>');
+ if(!hint){hint=document.createElement('div');hint.id='f1hint';document.body.appendChild(hint);}
+ const show=isAdv()&&b.classList.contains('on')&&!G.ui&&!otherOverlay();const nr=show?newRegion():null;
+ const intro=show&&!nr&&(G.t||0)<(F1.introUntil||0);
+ b.classList.toggle('new',!!nr);
+ const k=nr?'n'+nr.id:intro?'i':'';if(k!==lastK){lastK=k;hint.innerHTML=nr?'🚉 NEW REGION OPEN: <b>'+nr.name+'</b><br>open the MAP'+(innerWidth>600?' <kbd>T</kbd>':'')+' to ride the Neko-Rail':'🗺 <b>6-region map</b> lives here'+(innerWidth>600?' <kbd>T</kbd>':'')+'<br>beat the Downtown boss to open Sakura';}
+ const on=!!(nr||intro)&&show;hint.classList.toggle('on',on);
+ if(on){const r=b.getBoundingClientRect();if(r.width>0){hint.style.right=(innerWidth-r.left+12)+'px';hint.style.top=Math.round(r.top+r.height/2-hint.offsetHeight/2)+'px';}}}
+/* first 14 s of a fresh Downtown run (before Sakura opens): point at the MAP button once */
+const _as=typeof advStart==='function'?advStart:null;if(_as){advStart=function(st){const r=_as.apply(this,arguments);try{const d=A.save&&A.save.data;const cl=(d&&d.adv&&d.adv.clears)||0;F1.introUntil=(st===1&&!cl)?(G.t||0)+14:0;}catch(e){}return r;};try{if(window.__game)__game.advStart=advStart;}catch(e){}}
+requestAnimationFrame(tick);
 })();
 
 </script>
