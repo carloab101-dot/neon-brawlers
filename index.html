@@ -15339,6 +15339,18 @@ function fitCam(cam,obj,aspect,pad=1.15,yaw=.55,pitch=.18){const bx=new TT.Box3(
  cam.position.set(c.x+Math.sin(yaw)*d*Math.cos(pitch),c.y+Math.sin(pitch)*d,c.z+Math.cos(yaw)*d*Math.cos(pitch));cam.lookAt(c);cam.near=Math.max(.01,d-r*4);cam.far=d+r*6+5;cam.updateProjectionMatrix();return {c,r:Math.max(r,h)};}
 function lights(scene,key,rim,rim2){scene.add(new TT.HemisphereLight(0xfff0f8,0x1a1030,.55));const d=new TT.DirectionalLight(key,1.5);d.position.set(2,4,4);scene.add(d);
  const r=new TT.DirectionalLight(rim,2.4);r.position.set(-3,2,-4);scene.add(r);const r2=new TT.DirectionalLight(rim2,1.4);r2.position.set(4,1.5,-3);scene.add(r2);return r;}
+const CARD_YAW=.6;
+/* principal horizontal axis of a body (covariance of world-space vertex xz, sampled) */
+function principalXZ(o){o.updateMatrixWorld(true);let n=0,mx=0,mz=0,xx=0,zz=0,xz=0;const v=new TT.Vector3();const P=[];o.traverse(m=>{if(!m.isMesh||!m.geometry.attributes.position)return;const a=m.geometry.attributes.position,st=Math.max(1,Math.floor(a.count/400));
+  for(let i=0;i<a.count;i+=st){v.fromBufferAttribute(a,i).applyMatrix4(m.matrixWorld);P.push(v.x,v.z);}});n=P.length/2;if(!n)return {angle:0,major:0};
+ for(let i=0;i<n;i++){mx+=P[i*2];mz+=P[i*2+1];}mx/=n;mz/=n;for(let i=0;i<n;i++){const x=P[i*2]-mx,z=P[i*2+1]-mz;xx+=x*x;zz+=z*z;xz+=x*z;}const ang=.5*Math.atan2(2*xz,xx-zz);const ux=Math.cos(ang),uz=Math.sin(ang);
+ let lo=1e9,hi=-1e9;for(let i=0;i<n;i++){const d=(P[i*2]-mx)*ux+(P[i*2+1]-mz)*uz;if(d<lo)lo=d;if(d>hi)hi=d;}/* axis (ux,uz) in xz; Y-rotation that maps it onto +X is +atan2(uz,ux) */return {angle:-Math.atan2(uz,ux),major:hi-lo};}
+/* fit the camera (fixed yaw/pitch) so the projected box fills `fill` of the frame in its tighter dimension */
+function fitFill(cam,obj,aspect,fill=.8,yaw=.6,pitch=.16){const bx=new TT.Box3().setFromObject(obj),c=new TT.Vector3();bx.getCenter(c);const dir=new TT.Vector3(Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),Math.cos(yaw)*Math.cos(pitch));
+ let d=bx.getSize(new TT.Vector3()).length()*1.5+1;cam.aspect=aspect;const pts=[];for(let i=0;i<8;i++)pts.push(new TT.Vector3(i&1?bx.max.x:bx.min.x,i&2?bx.max.y:bx.min.y,i&4?bx.max.z:bx.min.z));const q=new TT.Vector3();
+ for(let it=0;it<5;it++){cam.position.copy(c).addScaledVector(dir,d);cam.lookAt(c);cam.near=Math.max(.01,d*.1);cam.far=d*4+10;cam.updateProjectionMatrix();cam.updateMatrixWorld(true);
+  let ex=0,ey=0;for(const p of pts){q.copy(p).project(cam);ex=Math.max(ex,Math.abs(q.x));ey=Math.max(ey,Math.abs(q.y));}d*=Math.max(ex,ey)/fill;}
+ cam.position.copy(c).addScaledVector(dir,d);cam.lookAt(c);cam.near=Math.max(.01,d*.1);cam.far=d*4+10;cam.updateProjectionMatrix();return {c,r:d};}
 /* fused species (F6): record from the live game, body from window.buildFusedSpirit / NB_FUSED (shared geometry: detach only, never dispose) */
 function liveRec(id){try{const S=W.ADV2&&W.ADV2.spirits&&W.ADV2.spirits.SPC;if(S&&S[id])return S[id];}catch(e){}try{if(W.NB_FUSED&&W.NB_FUSED.SPC&&W.NB_FUSED.SPC[id])return W.NB_FUSED.SPC[id];}catch(e){}return null;}
 function fusedInfo(id){const rec=liveRec(id);const isF=String(id).startsWith('fx_')||(rec&&!SPC[id]);if(!isF)return null;const NB=W.NB_FUSED;let e=null;try{e=NB&&NB.entryOf?NB.entryOf(id,rec||undefined):null;}catch(err){}
@@ -15347,11 +15359,16 @@ function fusedBuilder(){return typeof W.buildFusedSpirit==='function'?W.buildFus
 function contentFused(o,own,F){const bf=fusedBuilder();const el=ELEM[o.element]?o.element:F.el,el2=F.els[1]&&F.els[1]!==el?F.els[1]:(F.els[0]!==el?F.els[0]:el);const ecol=ELEM[el][0],ecol2=ELEM[el2][0],col=o.color!=null?o.color:F.col;
  const scene=new TT.Scene();const cam=new TT.PerspectiveCamera(30,1,.1,50);lights(scene,0xffffff,ecol,ecol2);const turn=new TT.Group();scene.add(turn);
  const fg=bf(o.id,{rec:F.rec||liveRec(o.id)||undefined,base:false});const holder=new TT.Group();holder.add(fg);turn.add(holder);try{W.NB_FUSED&&W.NB_FUSED.idle(fg,0);}catch(e){}fg.updateMatrixWorld(true);
- const bx=new TT.Box3().setFromObject(fg),sz=new TT.Vector3(),c=new TT.Vector3();bx.getSize(sz);bx.getCenter(c);const lw0=Math.max(sz.x,sz.z),k=1.6/Math.max(.2,sz.y,sz.x*.8,sz.z*.8);const flat=sz.y<lw0*.5;/*F7: long flat bodies (wyrms) framed closer*/holder.scale.setScalar(k);holder.position.set(-c.x*k,-bx.min.y*k+.05,-c.z*k);
+ const bx=new TT.Box3().setFromObject(fg),sz=new TT.Vector3(),c=new TT.Vector3();bx.getSize(sz);bx.getCenter(c);
+ /* long / flat bodies (wyrms): turn the principal horizontal axis side-on to the card camera, then fit to ~80% of the frame */
+ const pa=principalXZ(fg);const hExt=Math.max(sz.x,sz.z,pa.major),long=hExt>1.6*sz.y||sz.z>sz.x*1.25;let k;
+ if(long){holder.rotation.y=-pa.angle+CARD_YAW;holder.scale.setScalar(1);holder.position.set(0,0,0);holder.updateMatrixWorld(true);const b1=new TT.Box3().setFromObject(holder),s1=new TT.Vector3();b1.getSize(s1);
+  k=2.4/Math.max(.2,s1.x,s1.z,s1.y*1.5);holder.scale.setScalar(k);holder.updateMatrixWorld(true);const b3=new TT.Box3().setFromObject(holder),c3=new TT.Vector3();b3.getCenter(c3);holder.position.set(-c3.x,-b3.min.y+.05,-c3.z);}
+ else{k=1.6/Math.max(.2,sz.y,sz.x*.8,sz.z*.8);holder.scale.setScalar(k);holder.position.set(-c.x*k,-bx.min.y*k+.05,-c.z*k);}
  turn.updateMatrixWorld(true);const b2=new TT.Box3().setFromObject(holder);b2.getSize(sz);b2.getCenter(c);const R=Math.max(sz.x,sz.z)*.5+.15;
  const au=buildAura(el,R,c.y,ecol,own,ecol2);turn.add(au.grp);const pedM=new TT.MeshBasicMaterial({color:ecol2,transparent:true,opacity:.75,blending:TT.AdditiveBlending,toneMapped:false,depthWrite:false});own.push(pedM);
  const ped=new TT.Mesh(unitGeo().ring,pedM);ped.scale.setScalar(R*1.05);ped.position.y=.01;scene.add(ped);const elTxt=el===el2?ELEM[el][2]:ELEM[el][2]+'+'+ELEM[el2][2];
- return {scene,cam,fused:fg,fit:a=>fitCam(cam,holder,a,flat?.8:1.25,.6,.16),upd:t=>{try{W.NB_FUSED&&W.NB_FUSED.idle(fg,t);}catch(e){}au.upd(t);turn.rotation.y=Math.sin(t*.35)*.5;},pts:au.uniform,
+ return {scene,cam,fused:fg,long,fit:a=>long?fitFill(cam,holder,a,.8,CARD_YAW,.16):fitCam(cam,holder,a,1.25,CARD_YAW,.16),upd:t=>{try{W.NB_FUSED&&W.NB_FUSED.idle(fg,t);}catch(e){}au.upd(t);turn.rotation.y=Math.sin(t*.35)*(long?.15:.5);},pts:au.uniform,
   meta:{tag:'SPIRIT',tagKj:'魂',name:F.name,kj:F.kj,sub:F.fam+' · '+elTxt+(F.special?' · '+F.special:''),chip:ELEM[el][1]+ELEM[el2][1]+' FUSED',accent:ecol,col}};}
 function contentSpirit(o,own){const F=fusedInfo(o.id);if(F&&fusedBuilder())return contentFused(o,own,F);
  const sp=SPC[o.id]||(F?[F.name,F.kj,F.fam,F.el,F.col]:null)||['Unknown Spirit','魂','—','void',0xc080ff];const el=ELEM[o.element]?o.element:sp[3];const col=o.color!=null?o.color:sp[4],ecol=ELEM[el][0];
@@ -15386,8 +15403,8 @@ function contentWeapon(o,own){const R=resolveW(o.id);const col=o.color!=null?o.c
 /* ---------- 2D HUD frame ---------- */
 const FONT='"Arial Black","Segoe UI Black",Arial,"Hiragino Sans","Noto Sans CJK JP","Yu Gothic",sans-serif';
 function rr2(x,X,Y,w,h,r){x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+w,Y,X+w,Y+h,r);x.arcTo(X+w,Y+h,X,Y+h,r);x.arcTo(X,Y+h,X,Y,r);x.arcTo(X,Y,X+w,Y,r);x.closePath();}
-function subText(x,txt,tx,y,maxW,px,weight){const s0=fitText(x,txt,maxW,px,weight);if(s0>=px*.72||txt.indexOf(' · ')<0){x.fillText(txt,tx,y);return;}const parts=txt.split(' · ');let best=1;for(let i=1;i<parts.length;i++){best=i;if(x.measureText(parts.slice(0,i+1).join(' · ')).width>maxW)break;}const l1=parts.slice(0,best).join(' · '),l2=parts.slice(best).join(' · ');const s1=Math.min(fitText(x,l1,maxW,Math.round(px*.85),weight),fitText(x,l2,maxW,Math.round(px*.85),weight));x.font=weight+' '+s1+'px '+FONT;x.fillText(l1,tx,y-s1*.55);x.fillText(l2,tx,y+s1*.55);}/*F7 wrap long specials*/
 function fitText(x,txt,maxW,px,weight='900'){let s=px;x.font=weight+' '+s+'px '+FONT;while(s>6&&x.measureText(txt).width>maxW){s-=1;x.font=weight+' '+s+'px '+FONT;}return s;}
+function subText(x,txt,tx,y,maxW,px,weight){const s0=fitText(x,txt,maxW,px,weight);if(s0>=px*.72||txt.indexOf(' · ')<0){x.fillText(txt,tx,y);return;}const parts=txt.split(' · ');let best=1;for(let i=1;i<parts.length;i++){best=i;if(x.measureText(parts.slice(0,i+1).join(' · ')).width>maxW)break;}const l1=parts.slice(0,best).join(' · '),l2=parts.slice(best).join(' · ');const s1=Math.min(fitText(x,l1,maxW,Math.round(px*.85),weight),fitText(x,l2,maxW,Math.round(px*.85),weight));x.font=weight+' '+s1+'px '+FONT;x.fillText(l1,tx,y-s1*.55);x.fillText(l2,tx,y+s1*.55);}/*F7 wrap long specials*/
 const plateH=(w,h,dpr)=>w>h*1.5?Math.max(28*dpr,h*.34):Math.max(40*dpr,h*.2);
 function drawBack(x,w,h,m,dpr){const a=hex(m.accent);x.clearRect(0,0,w,h);const r=12*dpr;rr2(x,1,1,w-2,h-2,r);const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,'#160c28');g.addColorStop(.6,'#0c0718');g.addColorStop(1,'#080512');x.fillStyle=g;x.fill();
  x.save();x.clip();const rg=x.createRadialGradient(w/2,h*.42,0,w/2,h*.42,Math.max(w,h)*.55);rg.addColorStop(0,a+'55');rg.addColorStop(.5,a+'18');rg.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=rg;x.fillRect(0,0,w,h);
@@ -15430,7 +15447,7 @@ function mount(el,opts={}){if(!el)throw new Error('CARDS.mount: no element');car
   update(dt=1/60){if(dead||!C)return;if(size())decorate();t+=dt;C.upd(t);render();},
   step(dt){if(dead||!C)return;t+=dt;},
   setData(o){opt=Object.assign({},opt,o);t=0;build();render();},
-  get meta(){return C&&C.meta;},
+  get meta(){return C&&C.meta;},get _long(){return !!(C&&C.long);},
   dispose(){if(dead)return;dead=true;disposeContent();IO&&IO.unobserve(el);CARDLIST.delete(card);cv.remove();if(!CARDLIST.size)stopLoop();},
   _vis(v){visible=v;}};
  build();C.upd(0);render();CARDLIST.add(card);if('IntersectionObserver' in window){if(!IO)IO=new IntersectionObserver(es=>{for(const e of es)for(const c of CARDLIST)if(c.el===e.target)c._vis(e.isIntersecting);});IO.observe(el);}
