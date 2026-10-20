@@ -15604,10 +15604,11 @@ function wArm(type,i){const odd=i%2===1;switch(type){
  case 'bow':return [{shR:[-.9,0,-.5],elR:[-1.6,0,0]},{shR:[-1.55,0,-.05],elR:[-.05,0,0],chest:[.1,.3,0],lz:.25}];}
  return null;}
 function wType(f){try{const w=A.weapons.cur(f);return w&&!w.locked?w.def.type:null;}catch(e){return null;}}
-const C=new Map();
+const C=new Map();const SLOW={_:1.6,gauntlet:1.55,blade:1.7,thrown:1.75,bow:1.75,staff:1.85,heavy:2.05};
 function derive(f,d){const tc=d._tech;const techId=tc?tc.id:null;const i=tc?tc.i:((f._f9n=(f._f9n||0)+1)%2);const ty=wType(f);
  const key=techId+'|'+(tc?tc.tier:0)+'|'+i+'|'+ty;let m=C.get(d);if(!m){m={};C.set(d,m);}if(m[key])return m[key];
- const h=d.hits&&d.hits[0];const th=h?h.t:d.dur*.3,D=d.dur;
+ /* F10b: slower, readable swings — heavier weapons slower; damage scaled to keep DPS */
+ const SL=SLOW[ty]||SLOW._;const h=d.hits&&d.hits[0];const th=(h?h.t:d.dur*.3)*SL,D=d.dur*SL;
  let body=null,opt={};const S=techId&&strikes(techId);if(S){const s=S[i%S.length];body=Object.assign({},PZ[s[0]]);opt=s[2]||{};}
  const wa=ty?wArm(ty,i):null;
  let wind={},hit=body?Object.assign({},body):Object.assign({},(d.keys.find(k=>k[0]>0&&Object.keys(k[1]).length)||[0,{}])[1]);
@@ -15617,8 +15618,8 @@ function derive(f,d){const tc=d._tech;const techId=tc?tc.id:null;const i=tc?tc.i
  const keys=[[0,{}],[th*.45,wind],[th,hit],[th+(D-th)*.45,hit],[D,{}]];
  if(opt.spin){keys[1][1]=Object.assign({},wind,{spin:TAU*.25});keys[2][1]=Object.assign({},hit,{spin:TAU*.75});keys[3][1]=Object.assign({},hit,{spin:TAU*.95});keys[4][1]={spin:TAU};}
  if(opt.blink){keys[1][1]=Object.assign({},wind,{lz:.6});}
- const nd=Object.assign({},d,{keys,jab:true,_f9:{ty,tech:techId,i,th}});m[key]=nd;return nd;}
-const _jf=jabFor;jabFor=function(f){const d=_jf.apply(this,arguments);if(!isAdv()||!f||!d||!d.keys)return d;try{return derive(f,d);}catch(e){if(!jabFor.e){jabFor.e=1;console.warn('[f9]',e);}return d;}};
+ const nd=Object.assign({},d,{keys,jab:true,dur:D,hits:(d.hits||[]).map(q=>Object.assign({},q,{t:q.t*SL,dmg:Math.max(1,Math.round(q.dmg*SL))})),_f9:{ty,tech:techId,i,th,sl:SL,d0:d.dur}});m[key]=nd;return nd;}
+const _jf=jabFor;jabFor=function(f){const d=_jf.apply(this,arguments);if(!isAdv()||!f||!d||!d.keys)return d;try{const nd=derive(f,d);/* chain window counts from the END of the slower swing */try{if(d._tech&&A.tech&&A.tech.TC){const s=A.tech.TC(f);s.t+=nd.dur-d.dur;}}catch(e){}return nd;}catch(e){if(!jabFor.e){jabFor.e=1;console.warn('[f9]',e);}return d;}};
 /* ---- slash arcs (one pool per fighter) ---- */
 const ARC=new Map();function arcFor(f){let a=ARC.get(f);if(a)return a;const g=new THREE.Group();const mk=(r,w,op)=>{const m=new THREE.Mesh(new THREE.RingGeometry(r-w,r,40,1,0,Math.PI*1.1),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:op,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));g.add(m);return m;};
  const m1=mk(1.25,.22,.9),m2=mk(1.3,.06,1);g.visible=false;scene.add(g);a={g,m1,m2,t:0,life:.16};ARC.set(f,a);return a;}
@@ -16031,9 +16032,7 @@ function block(blk,L,bags,lod){const h=L.params.curbH,pts=slabPoly(blk,L);if(pts
    box(bags.lac,mx,h+.004,mz,Math.abs(p[1][0]-p[0][0])+.12,.008,Math.abs(p[1][1]-p[0][1])+.12,PAVE2);}}}
 /* ---------- plazas ---------- */
 function plaza(p,L,bags,lod,arena){const h=L.params.curbH;cyl(bags.lac,p.x,h/2,p.z,p.r,h,CURB,true);bags.lac.add(UG().disc,MX(p.x,h+.002,p.z,p.r-.3,1,p.r-.3),PAVE2);
- if(lod!==0)return;bags.lac.add(UG().disc,MX(p.x,h+.004,p.z,arena.r+1.2,1,arena.r+1.2),C(0x232a3e));
- for(const [r,c] of [[p.r-.6,0x29e6ff],[arena.r+1,0xff2ea0],[arena.r*.35,0xffd24a]])bags.glow.add(UG().ring,MX(p.x,h+.008,p.z,r,1,r),C(c));
- for(let i=0;i<16;i++){const a=i/16*TAU;box(bags.lac,p.x+Math.cos(a)*(arena.r+.6),h+.006,p.z+Math.sin(a)*(arena.r+.6),.08,.006,1.4,PAINT,-a);}
+ if(lod!==0)return;/* F11: arena disc + rings + ticks removed (plaza keeps curb + bollards) */
  /* lacquer bollards with LED caps around the rim (shared ring spacing, skipped on street mouths) */
  const n=Math.round(p.r*TAU/5);for(let i=0;i<n;i++){const a=i/n*TAU,x=p.x+Math.cos(a)*(p.r-1.4),z=p.z+Math.sin(a)*(p.r-1.4);cyl(bags.lac,x,h+.45,z,.22,.9,C(0xe9edf5));cyl(bags.glow,x,h+.93,z,.18,.06,C(i%2?0xff2ea0:0x29e6ff));}}
 /* ---------- streets ---------- */
@@ -16049,7 +16048,7 @@ function streets(L,bags,lod,X0,Z0,X1,Z1){const inside=(x,z)=>x>=X0&&x<X1&&z>=Z0&
  /* crosswalks + stop lines */
  for(const it of L.intersections){if(!inside(it.x,it.z)||inPlaza(L,it.x,it.z,1))continue;for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const road=dx?it.wz:it.wx,off=(dx?it.wx:it.wz)/2+2.2;const cx=it.x+dx*off,cz=it.z+dz*off;
    for(let k=-road/2+.9;k<road/2-.6;k+=1.1){box(bags.lac,dx?cx:cx+k,y,dz?cz:cz+k,dx?3:.55,.012,dz?3:.55,PAINT);}box(bags.lac,dx?cx+dx*2.1:cx,y,dz?cz+dz*2.1:cz,dx?.3:road*.9,.012,dz?.3:road*.9,PAINT);}
-  if(it.fight){bags.glow.add(UG().ring,MX(it.x,.02,it.z,L.params.arenaR,1,L.params.arenaR),C(0x29e6ff));for(let i=0;i<24;i++){const a=i/24*TAU;box(bags.glow,it.x+Math.cos(a)*(L.params.arenaR+.5),.02,it.z+Math.sin(a)*(L.params.arenaR+.5),.5,.012,.18,C(0xff2ea0),-a);}}}
+  /* F11: no fight-corner ring */}
  /* street lights along avenues, traffic lights at avenue intersections */
  for(const l of L.lights)if(inside(l.x,l.z))streetLight(bags,l.x,l.z,l.nx,l.nz);
  for(const it of L.intersections){if(!inside(it.x,it.z)||!it.signal)continue;
