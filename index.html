@@ -14614,8 +14614,7 @@ if(typeof advHit==='function'){const _ah=advHit;advHit=function(f,h){if(!isAdv()
    if(last&&f.act&&WS(f).artLink){f.act.t+=WS(f).artLink;WS(f).artLink=0;}return r;}
   const reg=d.jab||d===JAB||(typeof JABS!=='undefined'&&JABS[f.mi]===d);const r=_ah.apply(this,arguments);if(!reg)return r;
   const list=[];for(const [q,hp] of before){const dd=hp-q.hp;if(dd>0)list.push([q,dd]);}const s=WS(f);
-  if(!list.length){s.streak=0;return r;}
-  let add=1;try{const st=A.skill.effSt();if(st&&st.streak)add+=st.streak;}catch(er){}s.streak+=add;s.last=t();s.lastHit=t();s.lastHitE=list[0][0];s.lastHitD=list[0][1];
+  /* F9: the streak counts SWINGS (whiffs too) */let add=1;if(list.length){try{const st=A.skill.effSt();if(st&&st.streak)add+=st.streak;}catch(er){}s.lastHit=t();s.lastHitE=list[0][0];s.lastHitD=list[0][1];}s.streak=Math.min(needN(f),s.streak+add);s.last=t();
   const w=cur(f);if(w&&!w.locked&&s.streak>=needN(f)&&s.cd<=0)A.weapons.fire(f);return r;};}
 /* inputs: hold GUARD + JAB = Art I · hold GUARD + DASH = Art II (without Art II the dash is normal) */
 if(typeof doMove==='function'){const _dm=doMove;doMove=function(f,i,force){if(i<0&&!force&&isAdv()&&f&&typeof IN!=='undefined'&&IN[f.side]&&IN[f.side].block&&!f.act){if(useArt(f,1))return true;}return _dm.apply(this,arguments);};}
@@ -15479,7 +15478,7 @@ let LO=null;function aCardsStep(getFighter,opt={}){const ov=opt.root||document.g
  if(!document.getElementById('f5x-css')){const st=document.createElement('style');st.id='f5x-css';st.textContent='.f5x-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:4px 0 6px}.f5x-cards .cd{height:130px;position:relative}@media (max-width:600px){.f5x-cards{gap:5px}.f5x-cards .cd{height:104px}}';document.head.appendChild(st);}
  el.innerHTML='<div class="cd"></div><div class="cd"></div><div class="cd"></div>';tb.after(el);const cd=el.querySelectorAll('.cd');
  const cards=[CARDS.mount(cd[0],ids.spirit?{kind:'spirit',id:ids.spirit}:{kind:'spirit',id:'voidwhisker',color:0xff2ea0}),CARDS.mount(cd[1],{kind:'technique',id:ids.technique||'street'}),CARDS.mount(cd[2],{kind:'weapon',id:ids.weapon})];LO={key,el,cards};}
-ROOT.adapter={model:aModel,spawnWeapon:aSpawnWeapon,cardsStep:aCardsStep,ids:aIds,forge:o=>buildForge(o),STAND_SCALE};
+ROOT.KATA=KATA;ROOT.PZ=PZ;ROOT.adapter={model:aModel,spawnWeapon:aSpawnWeapon,cardsStep:aCardsStep,ids:aIds,forge:o=>buildForge(o),STAND_SCALE};
 })();
 
 </script>
@@ -15579,6 +15578,73 @@ A.f5.BENCH=BENCH;
 if(typeof advAmbient==='function'){const _aa=advAmbient;advAmbient=function(dt){_aa.apply(this,arguments);try{finStep();if(window.NB_FINISHER)NB_FINISHER.update((dt||0)/(G.timeScale>0?G.timeScale:1));if(!isAdv()){if(HAND.size){for(const h of HAND.values())scene.remove(h.g);HAND.clear();}if(PK.length){clearPK();lastRid=null;}ALIVE.clear();return;}handStep();pkStep();}catch(e){if(!A.f5.err){A.f5.err=e;console.warn('[f5]',e);}}};}
 if(typeof advExit==='function'){const _ax=advExit;advExit=function(){G.timeScale=1;benchClear();slowN=0;for(const h of HAND.values())scene.remove(h.g);HAND.clear();clearPK();lastRid=null;return _ax.apply(this,arguments);};}
 (function loop(){requestAnimationFrame(loop);try{hudStep();if(window.ADV2_F5&&ADV2_F5.adapter)ADV2_F5.adapter.cardsStep();else cardsStep();benchStep();}catch(e){if(!loop.e){loop.e=1;console.warn("[f5ui]",e&&e.message);}}})();
+})();
+
+</script>
+<script>/* adv2_f9.js */
+/* ===== ADV2 · F9: technique-true jabs + weapon swings + weapon finisher =====
+   Every regular hit plays the equipped technique's own kata pose (same poses the stats card shows, ADV2_F5.KATA/PZ),
+   and the weapon arm swings/slashes/thrusts by weapon type on top of it. Finisher = a big weapon move + slash arc.
+   Hit timing / damage untouched (only pose keys change). */
+(function(){'use strict';const A=window.ADV2;if(!A||typeof jabFor!=='function'||typeof applyPose!=='function')return;
+const R=window.ADV2_F5||{};const KATA=R.KATA||{},PZ=R.PZ||{};const TAU=Math.PI*2;
+const isAdv=()=>typeof ADV!=='undefined'&&ADV.on&&G.mode==='adv';const now=()=>(A.simT?A.simT():G.t);
+const ARM=['shR','elR','wrR'];
+/* strike poses from a kata: everything except guard/still stances */
+function strikes(id){const k=KATA[id];if(!k)return null;const L=k.k.filter(x=>x[0]!=='guard'&&x[0]!=='still'&&x[0]!=='horse'&&PZ[x[0]]);return L.length?L:null;}
+/* weapon arm: [windup, strike] partial poses per type; alt = backhand on odd hits */
+function wArm(type,i){const odd=i%2===1;switch(type){
+ case 'blade':return odd?[{shR:[-1.2,0,.95],elR:[-.4,0,0],wrR:[0,0,.5],chest:[.1,-.5,0]},{shR:[-1.7,0,-1.35],elR:[-.1,0,0],wrR:[0,0,-.4],chest:[.15,.55,0],lz:.2}]
+                       :[{shR:[-2.5,0,-1.2],elR:[-.6,0,0],wrR:[0,0,-.4],chest:[-.05,.5,0]},{shR:[-1.25,0,.9],elR:[-.12,0,0],wrR:[0,0,.6],chest:[.2,-.55,0],lz:.2}];
+ case 'heavy':return [{shR:[-3.05,0,-.25],elR:[-.7,0,0],wrR:[-.3,0,0],chest:[-.3,.2,0],hy:.04},{shR:[-.75,0,-.1],elR:[-.05,0,0],wrR:[.2,0,0],chest:[.45,0,0],hy:-.16,lz:.22}];
+ case 'staff':return odd?[{shR:[-1.3,0,-1.4],elR:[-.3,0,0],chest:[0,.6,0]},{shR:[-1.35,0,.9],elR:[-.1,0,0],chest:[.1,-.6,0],lz:.15}]
+                       :[{shR:[-1.0,0,-.3],elR:[-1.9,0,0],chest:[-.05,.35,0],lz:-.05},{shR:[-1.58,0,0],elR:[0,0,0],wrR:[0,0,0],chest:[.15,-.2,0],lz:.32}];
+ case 'gauntlet':return odd?[{shR:[-.5,0,-.4],elR:[-2.0,0,0]},{shR:[-1.6,0,-.08],elR:[-.08,0,0],chest:[.12,.45,0],lz:.18}]:null;
+ case 'thrown':return [{shR:[-1.4,0,-1.6],elR:[-.7,0,0],chest:[0,.6,0]},{shR:[-1.45,0,.85],elR:[-.1,0,0],wrR:[0,0,.4],chest:[.1,-.55,0],lz:.12}];
+ case 'bow':return [{shR:[-.9,0,-.5],elR:[-1.6,0,0]},{shR:[-1.55,0,-.05],elR:[-.05,0,0],chest:[.1,.3,0],lz:.25}];}
+ return null;}
+function wType(f){try{const w=A.weapons.cur(f);return w&&!w.locked?w.def.type:null;}catch(e){return null;}}
+const C=new Map();
+function derive(f,d){const tc=d._tech;const techId=tc?tc.id:null;const i=tc?tc.i:((f._f9n=(f._f9n||0)+1)%2);const ty=wType(f);
+ const key=techId+'|'+(tc?tc.tier:0)+'|'+i+'|'+ty;let m=C.get(d);if(!m){m={};C.set(d,m);}if(m[key])return m[key];
+ const h=d.hits&&d.hits[0];const th=h?h.t:d.dur*.3,D=d.dur;
+ let body=null,opt={};const S=techId&&strikes(techId);if(S){const s=S[i%S.length];body=Object.assign({},PZ[s[0]]);opt=s[2]||{};}
+ const wa=ty?wArm(ty,i):null;
+ let wind={},hit=body?Object.assign({},body):Object.assign({},(d.keys.find(k=>k[0]>0&&Object.keys(k[1]).length)||[0,{}])[1]);
+ if(wa){wind=Object.assign({},wa[0]);for(const k of ARM)if(wa[1][k])hit[k]=wa[1][k];if(wa[1].chest)hit.chest=hit.chest?[ (hit.chest[0]+wa[1].chest[0])/2,wa[1].chest[1],hit.chest[2]]:wa[1].chest;if(wa[1].lz!=null)hit.lz=Math.max(hit.lz||0,wa[1].lz);if(wa[1].hy!=null)hit.hy=wa[1].hy;}
+ else if(body){wind={chest:[0,-(body.chest?body.chest[1]:0)*.6,0]};}
+ if(opt.y)hit.hy=(hit.hy||0)+opt.y;
+ const keys=[[0,{}],[th*.45,wind],[th,hit],[th+(D-th)*.45,hit],[D,{}]];
+ if(opt.spin){keys[1][1]=Object.assign({},wind,{spin:TAU*.25});keys[2][1]=Object.assign({},hit,{spin:TAU*.75});keys[3][1]=Object.assign({},hit,{spin:TAU*.95});keys[4][1]={spin:TAU};}
+ if(opt.blink){keys[1][1]=Object.assign({},wind,{lz:.6});}
+ const nd=Object.assign({},d,{keys,jab:true,_f9:{ty,tech:techId,i,th}});m[key]=nd;return nd;}
+const _jf=jabFor;jabFor=function(f){const d=_jf.apply(this,arguments);if(!isAdv()||!f||!d||!d.keys)return d;try{return derive(f,d);}catch(e){if(!jabFor.e){jabFor.e=1;console.warn('[f9]',e);}return d;}};
+/* ---- slash arcs (one pool per fighter) ---- */
+const ARC=new Map();function arcFor(f){let a=ARC.get(f);if(a)return a;const g=new THREE.Group();const mk=(r,w,op)=>{const m=new THREE.Mesh(new THREE.RingGeometry(r-w,r,40,1,0,Math.PI*1.1),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:op,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));g.add(m);return m;};
+ const m1=mk(1.25,.22,.9),m2=mk(1.3,.06,1);g.visible=false;scene.add(g);a={g,m1,m2,t:0,life:.16};ARC.set(f,a);return a;}
+function slash(f,ty,i,big){const a=arcFor(f);let col=0x29e6ff;try{col=A.weapons.cur(f).def.col||col;}catch(e){}a.m1.material.color.setHex(col);a.m2.material.color.setHex(0xffffff);
+ const fx=Math.sin(f.ang||0),fz=Math.cos(f.ang||0);const s=big?2.1:(ty==='heavy'?1.25:ty==='staff'&&i%2===0?.8:1);a.g.scale.setScalar(s);
+ a.g.position.set(f.x+fx*(big?.4:.7),big?1.0:1.15,(f.z||0)+fz*(big?.4:.7));a.g.rotation.set(0,(f.ang||0),0);
+ if(big){a.g.rotateX(-Math.PI/2);a.g.rotation.z=0;a.m1.rotation.z=0;}else if(ty==='heavy'){a.g.rotateY(Math.PI/2);a.m1.parent.rotation.z=0;a.g.rotateZ(-Math.PI*.05);}
+ else if(ty==='staff'&&i%2===0){a.g.rotateX(-Math.PI/2);a.g.rotateZ(-Math.PI*.55-.0);}else{a.g.rotateX(-Math.PI/2+(i%2?.25:-.25));a.g.rotateZ(i%2?Math.PI*.95:-Math.PI*.05);}
+ a.t=a.life=big?.42:.17;a.g.visible=true;}
+function arcStep(dt){for(const a of ARC.values()){if(a.t<=0){a.g.visible=false;continue;}a.t-=dt;const k=Math.max(0,a.t/a.life);a.m1.material.opacity=.85*k;a.m2.material.opacity=k;a.g.scale.multiplyScalar(1+dt*1.2);if(a.t<=0)a.g.visible=false;}}
+/* swing arcs fire at the hit frame of each regular jab (hit or whiff) */
+if(typeof advHit==='function'){const _ah=advHit;advHit=function(f,h){const d=f&&f.act&&f.act.def;const r=_ah.apply(this,arguments);try{if(isAdv()&&d&&d._f9&&d._f9.ty&&d._f9.ty!=='gauntlet'){slash(f,d._f9.ty,d._f9.i,false);A.f9.swings++;}}catch(e){}return r;};}
+/* ---- weapon finisher body move ---- */
+const FIN=new Map();
+function finPose(ty,p){const up=p<.35,q=up?p/.35:(p-.35)/.65;
+ if(ty==='heavy')return up?{shR:[-3.1,0,-.2],elR:[-.5,0,0],shL:[-3.0,0,.2],elL:[-.5,0,0],chest:[-.35,0,0],hy:.35*q}:{shR:[-.6,0,-.05],elR:[0,0,0],shL:[-.7,0,.1],elL:[-.1,0,0],chest:[.55,0,0],hy:.35-.6*Math.min(1,q*2),lz:.35};
+ if(ty==='staff'||ty==='bow')return up?{shR:[-1.0,0,-.3],elR:[-2.0,0,0],chest:[-.1,.6,0],lz:-.1}:{shR:[-1.6,0,0],elR:[0,0,0],chest:[.2,-.3,0],lz:.6,spin:TAU*Math.min(1,q*1.4)};
+ return {shR:[-1.5,0,up?-1.4:1.0],elR:[-.1,0,0],shL:[-.4,0,1.3],chest:[.1,up?.6:-.6,0],hy:.15*Math.sin(p*Math.PI),spin:TAU*(up?0:Math.min(1,q*1.3)),lz:.2};}
+const _fire=A.weapons.fire;A.weapons.fire=function(f){const r=_fire.apply(this,arguments);try{if(r&&isAdv()&&f){const ty=wType(f)||'blade';FIN.set(f,{t0:now(),ty,dur:.5});slash(f,ty,0,true);A.f9.fins++;const h=A.f5&&A.f5.HAND&&A.f5.HAND.get(f);if(h)h.big=1;}}catch(e){}return r;};
+const _ap=applyPose;applyPose=function(f){const fn=FIN.get(f);if(!fn||!isAdv())return _ap.apply(this,arguments);const p=(now()-fn.t0)/fn.dur;if(p>=1||p<0){FIN.delete(f);return _ap.apply(this,arguments);}
+ const base=f.pose;const o=finPose(fn.ty,p),blend=Math.min(1,Math.min(p,1-p)*8);const P=Object.assign({},base);for(const k in o){const b=base[k];if(Array.isArray(o[k]))P[k]=b?[b[0]+(o[k][0]-b[0])*blend,b[1]+(o[k][1]-b[1])*blend,b[2]+(o[k][2]-b[2])*blend]:o[k];else P[k]=(b||0)+(o[k]-(b||0))*(k==='spin'?1:blend);}
+ f.pose=P;try{return _ap.apply(this,arguments);}finally{f.pose=base;}};
+/* hand weapon grows + glows during the finisher */
+function handFx(){const H=A.f5&&A.f5.HAND;if(!H)return;for(const [f,h] of H){const on=FIN.has(f);const s=(window.ADV2_F5?2.08:1.6)*(on?1.45:1);if(Math.abs(h.g.scale.x-s)>1e-3)h.g.scale.setScalar(s);}}
+if(typeof advAmbient==='function'){const _aa=advAmbient;advAmbient=function(dt){_aa.apply(this,arguments);try{arcStep((dt||0)/(G.timeScale>0?G.timeScale:1));handFx();if(!isAdv()&&ARC.size){for(const a of ARC.values())a.g.visible=false;}}catch(e){if(!A.f9.err){A.f9.err=e;console.warn('[f9]',e);}}};}
+A.f9={swings:0,fins:0,derive,strikes,FIN,ARC};
 })();
 
 </script>
