@@ -13868,7 +13868,7 @@ const TKEYS=Object.keys(TRAITS);
 const ELEM_OPP={fire:'ice',ice:'fire',storm:'earth',earth:'storm',light:'void',void:'light'};
 const sp=id=>{const s=SPC[id];return s?{id,name:s[0],kanji:s[1],fam:s[2],el:s[3],col:s[4],special:s[5]}:null;};
 /* ---------- save ---------- */
-function D(){const d=A.save.data;if(!d.spirits||typeof d.spirits!=='object')d.spirits={};const s=d.spirits;if(!Array.isArray(s.cores))s.cores=[];if(!s.seq)s.seq=1;if(!s.boss)s.boss={};if(!s.load)s.load={};if(!s.wins)s.wins={};return s;}
+function D(){const d=A.save.data;if(d.spirits&&d.spirits.fsp)for(const k in d.spirits.fsp)if(!SPC[k])SPC[k]=d.spirits.fsp[k];if(!d.spirits||typeof d.spirits!=='object')d.spirits={};const s=d.spirits;if(!Array.isArray(s.cores))s.cores=[];if(!s.seq)s.seq=1;if(!s.boss)s.boss={};if(!s.load)s.load={};if(!s.wins)s.wins={};return s;}
 function LO(mi){const s=D();return s.load[mi]||(s.load[mi]={Z:null,X:null,C:null,weapon:null});}
 const SLOTS=['Z','X','C'],SLOT_LV={Z:5,X:15,C:25};
 const core=id=>D().cores.find(c=>c.id===id)||null;
@@ -13877,7 +13877,7 @@ function newCore(spId,st,traits,extra){const s=D();const S=sp(spId);let tr=trait
 /* soul force + tier (SPIRITS §2) */
 const SF=f=>{try{return A.world2&&A.world2.soulForce?A.world2.soulForce(f):10+3*((LV.rec(f.mi).lv||1)-1);}catch(e){return 10;}};
 const tierOf=sf=>sf>=85?5:sf>=65?4:sf>=45?3:sf>=25?2:1;const STAR_CAP={1:0,2:3,3:4,4:5,5:6};
-function canEquip(f,slot,c){const lv=LV.rec(f.mi).lv||1;if(lv<SLOT_LV[slot])return 'Slot '+slot+' opens at LV '+SLOT_LV[slot];if(!c)return null;const cap=STAR_CAP[tierOf(SF(f))];
+function canEquip(f,slot,c){return null;/* F5: no level / soul-tier gates */const lv=LV.rec(f.mi).lv||1;if(lv<SLOT_LV[slot])return 'Slot '+slot+' opens at LV '+SLOT_LV[slot];if(!c)return null;const cap=STAR_CAP[tierOf(SF(f))];
  if(c.st>cap)return cap?'Soul tier '+['','I','II','III','IV','V'][tierOf(SF(f))]+' can equip up to '+(cap>=6?'Mythic':cap+'★'):'Captured spirits need soul tier II (soul force 25, about LV 6)';return null;}
 function holder(cid){const s=D();for(const mi in s.load)for(const k of SLOTS)if(s.load[mi][k]===cid)return [+mi,k];return null;}
 function equip(f,slot,cid){const c=cid?core(cid):null;const why=canEquip(f,slot,c);if(why)return why;if(cid){const h=holder(cid);if(h)LO(h[0])[h[1]]=null;}LO(f.mi)[slot]=cid||null;A.save.dirty('equip');applyAll();return null;}
@@ -13951,13 +13951,25 @@ function bossCores(){try{const w=A.save.data.world;if(!w||!w.cores)return;const 
 const fuseCost=(a,b)=>8*(a.st+b.st);
 function fusePreview(a,b){if(!a||!b||a.id===b.id)return null;const pr=PAIRS.find(p=>(p[0]===a.sp&&p[1]===b.sp)||(p[1]===a.sp&&p[0]===b.sp));
  const bossy=['ronin_rotor','admiral_angler','pharaoh_prism','rime_regent'];const lev=(a.sp==='foundry_titan'&&bossy.includes(b.sp)&&b.st>=5)||(b.sp==='foundry_titan'&&bossy.includes(a.sp)&&a.st>=5);
- const hi=a.st>=b.st?a:b;return {unique:lev?'neon_leviathan':pr?pr[2]:null,sp:lev?'neon_leviathan':pr?pr[2]:hi.sp,st:Math.max(a.st,b.st),plus:a.st===b.st&&a.st<6,cost:fuseCost(a,b),diffFam:a.fam!==b.fam};}
+ const nu=lev?'neon_leviathan':pr?pr[2]:null;const gid=nu&&nu!==a.sp&&nu!==b.sp?nu:A.spirits.genSpecies(a,b);return {unique:nu?nu:null,sp:gid,newSp:1,st:Math.min(6,Math.max(a.st,b.st)),plus:false,cost:fuseCost(a,b),diffFam:a.fam!==b.fam};}
 function fuse(f,a,b,atShrine){const P=fusePreview(a,b);if(!P)return {err:'Pick two different cores'};if(!atForge(f))return {err:'Fusion works at a Fusion Forge kiosk or a Forge Shrine'};const coins=ST[f.side]?ST[f.side].coins||0:0;if(coins<P.cost)return {err:'Need '+P.cost+' coins (you have '+coins+')'};
  ST[f.side].coins-=P.cost;let st=P.st;if(P.plus&&R_()<(atShrine?.45:.35))st++;st=Math.min(6,st);const pool=[...new Set([...(a.tr||[]),...(b.tr||[])])];const n=st>=4?3:2;const tr=[];while(tr.length<n&&pool.length)tr.push(pool.splice((R_()*pool.length)|0,1)[0]);
  const mut=R_()<((atShrine?.12:.08)+(P.diffFam?.03:0));if(mut){const extra=TKEYS.filter(k=>!tr.includes(k));if(extra.length)tr.push(extra[(R_()*extra.length)|0]);}
  for(const c of [a,b]){const h=holder(c.id);if(h)LO(h[0])[h[1]]=null;}const s=D();s.cores=s.cores.filter(c=>c!==a&&c!==b);const fus=(Math.max(a.fus||0,b.fus||0))+1;
- const c=newCore(P.sp,st,tr,{mut:mut?1:0,fus});try{const kept=[a,b].find(x=>x.sp===c.sp);if(kept&&A.skill&&A.skill.moveTree)A.skill.moveTree('sp.c.'+kept.id,'sp.c.'+c.id,2);}catch(e){}
- s.stats=s.stats||{};s.stats.fusions=(s.stats.fusions||0)+1;A.save.write('fuse');applyAll();return {core:c,unique:!!P.unique,up:st>P.st,mut};}
+ if(!SPC[P.sp])A.spirits.genSpecies(a,b);const c=newCore(P.sp,st,tr,{mut:mut?1:0,fus,par:[a.sp,b.sp]});s.disc=s.disc||{};const isNew=!s.disc[P.sp];s.disc[P.sp]=1;try{const kept=[a,b].find(x=>x.sp===c.sp);if(kept&&A.skill&&A.skill.moveTree)A.skill.moveTree('sp.c.'+kept.id,'sp.c.'+c.id,2);}catch(e){}
+ s.stats=s.stats||{};s.stats.fusions=(s.stats.fusions||0)+1;A.save.write('fuse');applyAll();return {core:c,unique:!!P.unique,up:false,mut,isNew};}
+/* F5 fusion generator: deterministic new species from the two parents (element combo → name, look, family, special) */
+const EL_ORDER=['fire','ice','storm','earth','light','void'];
+const COMBO={'fire+fire':['Inferno','炎',0xff5020,'AOE','Supernova'],'ice+ice':['Glacier','氷',0x9fe8ff,'ZONE','Absolute Zero'],'storm+storm':['Tempest','嵐',0x8a7aff,'RUSH','Eye of the Storm'],'earth+earth':['Monolith','山',0xc8a060,'AOE','Tectonic Crown'],'light+light':['Halo','聖',0xfff6c0,'BEAM','Zenith Lance'],'void+void':['Abyss','淵',0x9030ff,'TRICK','Event Horizon'],
+ 'fire+ice':['Steam','蒸',0xff9ad0,'ZONE','Scald Geyser'],'fire+storm':['Plasma','雷',0xff40ff,'BEAM','Plasma Arc'],'earth+fire':['Magma','溶',0xff7020,'AOE','Magma Rupture'],'fire+light':['Solar','陽',0xffc030,'BEAM','Sunspear'],'fire+void':['Hellfire','獄',0xd0208a,'TRICK','Black Flame'],
+ 'ice+storm':['Blizzard','雪',0xc0e0ff,'RUSH','Whiteout Charge'],'earth+ice':['Permafrost','凍',0x80c8d0,'AOE','Frost Quake'],'ice+light':['Prism','晶',0xe0f8ff,'BEAM','Crystal Refrain'],'ice+void':['Wraith','霊',0x8080ff,'TRICK','Cold Phantom'],
+ 'earth+storm':['Sandstorm','砂',0xe0b060,'ZONE','Dune Cyclone'],'light+storm':['Aurora','虹',0x60ffd0,'BEAM','Aurora Cascade'],'storm+void':['Rift','裂',0xa060ff,'RUSH','Rift Dash'],'earth+light':['Crystal','玉',0xa0ffb0,'SHOT','Geode Volley'],'earth+void':['Grave','冥',0x705090,'AOE','Tomb Collapse'],'light+void':['Eclipse','蝕',0xff60e0,'TRICK','Eclipse Swap']};
+const BODY={MELEE:['Fang','Claw'],SHOT:['Wyrm','Hornet'],RUSH:['Lynx','Raptor'],AOE:['Titan','Behemoth'],ZONE:['Kirin','Stag'],BEAM:['Phoenix','Seraph'],TRICK:['Kitsune','Specter']};
+function genSpecies(a,b){const A_=sp(a.sp),B_=sp(b.sp);const els=[A_.el,B_.el].sort((x,y)=>EL_ORDER.indexOf(x)-EL_ORDER.indexOf(y));const key=els.join('+');const C=COMBO[key]||COMBO[els[1]+'+'+els[0]]||['Chimera','合',0xff2ea0,'TRICK','Chimera Burst'];
+ const ps=[a.sp,b.sp].sort();let h=0;for(const ch of ps.join('|'))h=(h*131+ch.charCodeAt(0))>>>0;const fam=(h>>3)%3===0?(A_.fam===B_.fam?A_.fam:C[3]):C[3];const bod=BODY[fam]||BODY.TRICK;const noun=bod[h%2];
+ const id='fx_'+ps.join('__');if(SPC[id])return id;const col=((C[2]&0xfefefe)>>1)+(((h&0xff)<<15)&0x7f0000)|0x202020;
+ const rec=[C[0]+' '+noun,C[1],fam,(h&1?els[1]:els[0]),col&0xffffff,C[4]+(h%3===0?'':h%3===1?' Ⅱ':' ✦'),1,ps];SPC[id]=rec;const s=D();s.fsp=s.fsp||{};s.fsp[id]=rec;A.save.dirty('species');return id;}
+A.spirits.genSpecies=genSpecies;A.spirits.COMBO=COMBO;
 A.spirits.fuse=fuse;A.spirits.fusePreview=fusePreview;
 /* Forge = near a kiosk or a shrine */
 function atForge(f){if(!f)return null;try{for(const k of (window.SHOP&&SHOP.kiosks)||[])if(Math.hypot(f.x-k.x,f.z-k.z)<5)return 'kiosk';}catch(e){}try{if(A.skill&&A.skill.nearShrine(f))return 'shrine';}catch(e){}return null;}
@@ -14020,15 +14032,15 @@ let ITEMS=[];/* [{html,cls,act()}] */
 function coreLine(c){const S=sp(c.sp);return '<b>'+S.name+' '+STARS(c.st)+'</b><span>'+S.fam+' · '+S.el+' · special <em>'+S.special+'</em><br>'+(c.tr||[]).map(k=>TRAITS[k][0]).join(' · ')+(c.mut?' · ✦mutant':'')+'</span>';}
 function build(){const f=curF();ITEMS=[];if(!f)return '';const lo=LO(f.mi),lv=LV.rec(f.mi).lv||1,sf=SF(f),tier=tierOf(sf);const forge=atForge(f);const s=D();let h='';
  const add=(html,cls,fn,kj,col)=>{const i=ITEMS.length;ITEMS.push({fn});return '<button type="button" class="it '+(cls||'')+(i===SP_UI.sel?' sel':'')+'" data-a="it" data-i="'+i+'" style="--c:#'+(col||0x29e6ff).toString(16).padStart(6,'0')+'"><i class="kj">'+(kj||'魂')+'</i>'+html+'</button>';};
- if(SP_UI.tab===0){h+='<div class="sec">SPIRIT SLOTS · soul force '+sf+' · soul tier '+['','I','II','III','IV','V'][tier]+(STAR_CAP[tier]?' · equip up to '+(STAR_CAP[tier]>=6?'Mythic':STAR_CAP[tier]+'★'):' · captured spirits from tier II')+'</div><div class="row">';
-  SLOTS.forEach((k,i)=>{const c=lo[k]&&core(lo[k]);const lock=lv<SLOT_LV[k];const inn=(f._inn||f.moves)[i];h+=add(c?'<b>'+k+' · '+sp(c.sp).name+' '+STARS(c.st)+'</b><span>special: <em>'+sp(c.sp).special+'</em> · rank ×'+RANK[Math.min(6,c.st)]+'<br>select = put the innate spirit back</span>':'<b>'+k+' · innate spirit</b><span>special: <em>'+(inn?inn.name:'—')+'</em>'+(lock?'<br>🔒 slot opens for captured spirits at LV '+SLOT_LV[k]:'<br>select, then pick a core below')+'</span>',(SP_UI.slot===k?'pk ':'')+(lock?'off':c?'on':''),()=>{if(lock){SP_UI.msg='🔒 Slot '+k+' opens at LV '+SLOT_LV[k];return;}if(c&&SP_UI.slot===k){equip(f,k,null);SP_UI.msg='↺ '+k+' back to the innate spirit';SP_UI.slot=null;return;}SP_UI.slot=k;SP_UI.msg='Slot '+k+' selected · pick a core';},k,c?sp(c.sp).col:0xffd040);});
+ if(SP_UI.tab===0){h+='<div class="sec">SPIRIT SLOTS · soul force '+sf+' · soul tier '+['','I','II','III','IV','V'][tier]+' · any captured spirit fits any slot'+'</div><div class="row">';
+  SLOTS.forEach((k,i)=>{const c=lo[k]&&core(lo[k]);const lock=false;const inn=(f._inn||f.moves)[i];h+=add(c?'<b>'+k+' · '+sp(c.sp).name+' '+STARS(c.st)+'</b><span>special: <em>'+sp(c.sp).special+'</em> · rank ×'+RANK[Math.min(6,c.st)]+'<br>select = put the innate spirit back</span>':'<b>'+k+' · innate spirit</b><span>special: <em>'+(inn?inn.name:'—')+'</em>'+(lock?'<br>🔒 slot opens for captured spirits at LV '+SLOT_LV[k]:'<br>select, then pick a core below')+'</span>',(SP_UI.slot===k?'pk ':'')+(lock?'off':c?'on':''),()=>{if(lock){SP_UI.msg='🔒 Slot '+k+' opens at LV '+SLOT_LV[k];return;}if(c&&SP_UI.slot===k){equip(f,k,null);SP_UI.msg='↺ '+k+' back to the innate spirit';SP_UI.slot=null;return;}SP_UI.slot=k;SP_UI.msg='Slot '+k+' selected · pick a core';},k,c?sp(c.sp).col:0xffd040);});
   h+='</div><div class="sec">SPIRIT CORES · '+s.cores.length+' owned · hold F (D-pad ↓) in the ring around a weakened enemy to capture</div><div class="row">';
   if(!s.cores.length)h+='<div style="font:600 12px system-ui;color:#9fb4d8">No cores yet. Knock an enemy below 25% HP, then stand in the pink ring and hold F.</div>';
-  for(const c of s.cores){const hd=holder(c.id);const why=canEquip(f,SP_UI.slot||'Z',c);h+=add(coreLine(c)+(hd?'<span>equipped: '+(MECH_INFO[hd[0]]||{}).name+' · '+hd[1]+'</span>':''),(hd&&hd[0]===f.mi?'on':'')+(why&&c.st>(STAR_CAP[tier]||0)?' off':''),()=>{const slot=SP_UI.slot||SLOTS.find(k=>!lo[k]&&lv>=SLOT_LV[k])||'Z';if(foesNear(f,20)&&!forge){SP_UI.msg='Enemies within 20 m · swap spirits when it is quiet, or at a kiosk / shrine';return;}const err=equip(f,slot,c.id);SP_UI.msg=err?'🔒 '+err:'✓ '+sp(c.sp).name+' equipped on '+slot+' · special: '+sp(c.sp).special;},sp(c.sp).kanji,sp(c.sp).col);}
+  for(const c of s.cores){const hd=holder(c.id);const why=canEquip(f,SP_UI.slot||'Z',c);h+=add(coreLine(c)+(hd?'<span>equipped: '+(MECH_INFO[hd[0]]||{}).name+' · '+hd[1]+'</span>':''),(hd&&hd[0]===f.mi?'on':'')+'',()=>{const slot=SP_UI.slot||SLOTS.find(k=>!lo[k])||'Z';if(foesNear(f,20)&&!forge){SP_UI.msg='Enemies within 20 m · swap spirits when it is quiet, or at a kiosk / shrine';return;}const err=equip(f,slot,c.id);SP_UI.msg=err?'🔒 '+err:'✓ '+sp(c.sp).name+' equipped on '+slot+' · special: '+sp(c.sp).special;},sp(c.sp).kanji,sp(c.sp).col);}
   h+='</div>';}
  else if(SP_UI.tab===1){const [a,b]=SP_UI.pick.map(core);const P=a&&b?fusePreview(a,b):null;h+='<div class="sec">FUSION FORGE · '+(forge?'✓ at a '+forge+(forge==='shrine'?' (better odds)':''):'go to a kiosk or a shrine to fuse')+' · coins '+(ST[f.side]?ST[f.side].coins:0)+'</div>';
-  h+='<div class="pv">'+(a?'<b>A</b> '+sp(a.sp).name+' '+STARS(a.st):'pick core A')+' + '+(b?'<b>B</b> '+sp(b.sp).name+' '+STARS(b.st):'pick core B')+(P?' → <b>'+sp(P.sp).name+'</b> '+STARS(P.st)+(P.plus?' (35% '+(forge==='shrine'?'45%':'')+' chance of +1★)':'')+(P.unique?' · ✦ SECRET PAIRING':'')+' · cost <b>'+P.cost+'</b> coins':'')+'</div><div class="row">';
-  if(P)h+=add('<b>⚗ FUSE NOW</b><span>both cores are consumed · traits: pick from both parents · 8% mutation</span>',forge?'on':'off',()=>{if(!forge){SP_UI.msg='Fusion works at a kiosk or a shrine';return;}const r=fuse(f,a,b,forge==='shrine');if(r.err){SP_UI.msg=r.err;return;}SP_UI.pick=[];SP_UI.msg='✦ FUSED: '+sp(r.core.sp).name+' '+STARS(r.core.st)+(r.unique?' · SECRET PAIRING':'')+(r.up?' · +1★!':'')+(r.mut?' · MUTATION':'');try{sfx('ko');}catch(e){}},'⚗',0xffd040);
+  h+='<div class="pv">'+(a?'<b>A</b> '+sp(a.sp).name+' '+STARS(a.st):'pick core A')+' + '+(b?'<b>B</b> '+sp(b.sp).name+' '+STARS(b.st):'pick core B')+(P?' → <b>'+sp(P.sp).name+'</b> '+STARS(P.st)+' · <b>NEW SPECIES</b> · special <b>'+sp(P.sp).special+'</b> · '+sp(P.sp).el+' · '+sp(P.sp).fam+(P.unique?' · ✦ SECRET PAIRING':'')+' · cost <b>'+P.cost+'</b> coins':'')+'</div><div class="row">';
+  if(P)h+=add('<b>⚗ FUSE NOW</b><span>both cores merge into a brand-new spirit species · traits from both parents · 8% mutation</span>',forge?'on':'off',()=>{if(!forge){SP_UI.msg='Fusion works at a kiosk or a shrine';return;}const r=fuse(f,a,b,forge==='shrine');if(r.err){SP_UI.msg=r.err;return;}SP_UI.pick=[];SP_UI.msg='✦ NEW SPIRIT BORN: '+sp(r.core.sp).name+' '+STARS(r.core.st)+' · special '+sp(r.core.sp).special+(r.unique?' · SECRET PAIRING':'')+(r.isNew?' · first discovery!':'')+(r.mut?' · MUTATION':'');try{sfx('ko');}catch(e){}},'⚗',0xffd040);
   for(const c of s.cores)h+=add(coreLine(c),SP_UI.pick.includes(c.id)?'pk':'',()=>{const i=SP_UI.pick.indexOf(c.id);if(i>=0)SP_UI.pick.splice(i,1);else{if(SP_UI.pick.length>=2)SP_UI.pick.shift();SP_UI.pick.push(c.id);}SP_UI.msg='';},sp(c.sp).kanji,sp(c.sp).col);h+='</div>';}
  else if(SP_UI.tab===2||SP_UI.tab===3){const W=A.weapons;if(!W){h+='<div class="sec">weapons offline</div>';}else h+=W.uiHtml(f,SP_UI.tab===3,add,forge);}
  return h;}
@@ -14089,7 +14101,11 @@ function checkDrops(){const w=W2(),d=D();let got=null;if(!d.own.chakram&&Object.
  if(!d.own.prism_bow&&((w.secrets&&w.secrets.dunes)||[]).length>=1){d.own.prism_bow={at:Date.now()};got='prism_bow';}
  if(got){A.save.dirty('weapon');try{A.toast&&A.toast('器 NEW WEAPON',false,DEF[got].name+' · press J (loadout)');}catch(e){}}
  const rc=runeCount();if(rc>d.runeSeen){d.runeSeen=rc;A.save.dirty('rune');try{A.toast&&A.toast('✦ NEW RUNE',false,RUNES[RUNE_ORDER[(rc-1)%4]][0]+' · socket it in J › RUNES');}catch(e){}}}
-function forge(f,id){const D0=DEF[id];if(!D0||!D0.from)return {err:'This weapon is not forged'};if(D().own[id])return {err:'Already forged'};if(!S.atForge(f))return {err:'Forge at a kiosk or a shrine'};
+const REC={chakram:['ice','storm'],prism_bow:['light','fire'],greatsword:['earth','earth'],saber:['storm','void'],chainsaw:['ice','fire'],crane_staff:['light','storm'],ice_gauntlets:['ice','earth'],null_cane:['void','void']};
+function recCores(id){const r=REC[id];if(!r)return null;const free=S.D().cores.filter(c=>!S.holder(c.id));const out=[];for(const el of r){const c=free.find(c=>c.el===el&&!out.includes(c));if(!c)return null;out.push(c);}return out;}
+function forge(f,id){const D0=DEF[id];if(!D0||id==='sig')return {err:'This weapon is not forged'};if(D().own[id])return {err:'Already forged'};if(!S.atForge(f))return {err:'Forge at a kiosk or a shrine'};
+ if(!D0.from||!S.D().cores.some(c=>c.sp===D0.from&&!S.holder(c.id))){const rc=recCores(id);if(!rc)return {err:'Recipe: '+(D0.from?S.sp(D0.from).name+' core, or ':'')+REC[id].join(' + ')+' cores + 60 coins'};if(!ST[f.side]||ST[f.side].coins<60)return {err:'Needs 60 coins'};
+  ST[f.side].coins-=60;for(const c of rc)S.D().cores.splice(S.D().cores.indexOf(c),1);D().own[id]={at:Date.now(),rec:1};A.save.dirty('forge');return {ok:1};}if(D().own[id])return {err:'Already forged'};if(!S.atForge(f))return {err:'Forge at a kiosk or a shrine'};
  const c=S.D().cores.find(c=>c.sp===D0.from&&!S.holder(c.id));if(!c)return {err:'Needs a free '+S.sp(D0.from).name+' core'};const cost=40;if(!ST[f.side]||ST[f.side].coins<cost)return {err:'Needs '+cost+' coins'};
  ST[f.side].coins-=cost;S.D().cores.splice(S.D().cores.indexOf(c),1);D().own[id]={at:Date.now(),core:c.sp,el:c.el};A.save.dirty('forge');return {ok:1};}
 function equip(f,key){S.LO(f.mi).weapon=key&&!key.startsWith('sig.')?key:null;A.save.dirty('wequip');}
@@ -14201,7 +14217,7 @@ if(typeof advHit==='function'){const _ah=advHit;advHit=function(f,h){if(!isAdv()
   const list=[];for(const [q,hp] of before){const dd=hp-q.hp;if(dd>0)list.push([q,dd]);}const s=WS(f);
   if(!list.length){s.streak=0;return r;}
   let add=1;try{const st=A.skill.effSt();if(st&&st.streak)add+=st.streak;}catch(er){}s.streak+=add;s.last=t();s.lastHit=t();s.lastHitE=list[0][0];s.lastHitD=list[0][1];
-  const w=cur(f);if(w&&!w.locked&&s.streak>=needN(f)&&s.cd<=0)fire(f);return r;};}
+  const w=cur(f);if(w&&!w.locked&&s.streak>=needN(f)&&s.cd<=0)A.weapons.fire(f);return r;};}
 /* inputs: hold GUARD + JAB = Art I · hold GUARD + DASH = Art II (without Art II the dash is normal) */
 if(typeof doMove==='function'){const _dm=doMove;doMove=function(f,i,force){if(i<0&&!force&&isAdv()&&f&&typeof IN!=='undefined'&&IN[f.side]&&IN[f.side].block&&!f.act){if(useArt(f,1))return true;}return _dm.apply(this,arguments);};}
 if(typeof tryDash==='function'){const _td=tryDash;tryDash=function(f,I){if(isAdv()&&f&&I&&I.block&&!f.act&&useArt(f,2))return true;const s=f&&f._wp;
@@ -14229,11 +14245,11 @@ function uiHtml(f,isRunes,add,forgeAt){const U=A.spiritsUI;const w=cur(f);let h=
  if(!isRunes){const e=nnodes(f);h+='<div class="sec">EQUIPPED · '+w.def.name+' · '+(w.def.type||'').toUpperCase()+' · LV '+WL(w.key).lv+' · N '+needN(f)+' · cd '+cdOf(f).toFixed(1)+' s'+(w.locked?' · '+w.locked:'')+'</div>';
   h+='<div class="pv">Fires by itself after <b>'+needN(f)+'</b> regular hits in a row'+(w.def.kind==='form'?' · <b>FORM</b> (G / \u2019 / D-pad →) swaps: '+w.def.forms.map((x,i)=>i===formOf(f)?'<b>'+x+'</b>':x).join(' / ')+' · a swap right after a hit = Form Break':'')+(w.def.kind==='throw'?' · <b>FORM</b> recalls it · dash flies to it':'')+
    '<br>Art I <b>'+w.def.art[0]+'</b> (hold S + W · LB + Ⓐ) '+(artOpen(f,1)?'✓':'🔒 spend 1 point in this weapon\u2019s tree (K)')+' · Art II <b>'+w.def.art[1]+'</b> (hold S + Space · LB + Ⓑ) '+(artOpen(f,2)?'✓':'🔒 reach row 3 of '+(w.def.type||'').toUpperCase()+' mastery')+'</div>';
-  h+='<div class="sec">ARMOURY · '+(forgeAt?'✓ forge here ('+forgeAt+')':'forge at a kiosk or a shrine')+'</div><div class="row">';
+  h+=(A.f5&&A.f5.cardsHtml?'':'')+'<div class="sec">WEAPON INVENTORY · '+(Object.keys(D().own).length+1)+' owned · ARMOURY · '+(forgeAt?'✓ forge here ('+forgeAt+')':'forge at a kiosk or a shrine')+'</div><div class="row">';
   const sk=sigKey(f.mi);h+=add('<b>'+defOf(sk).name+'</b><span>Aura Burst r 2.5 m · N 5 · cd 8 s</span>',w.key===sk?'on':'',()=>{equip(f,null);U.msg='Equipped signature gear';},'気',colOf2(f));
-  for(const id in DEF){if(id==='sig')continue;const d=DEF[id];const own=D().own[id];const src=d.from?'forge: '+S.sp(d.from).name+' core + 40 coins':'drop: '+d.drop;
+  for(const id in DEF){if(id==='sig')continue;const d=DEF[id];const own=D().own[id];const src=(d.from?'forge: '+S.sp(d.from).name+' core + 40 · ':'')+'recipe: '+REC[id].join(' + ')+' cores + 60 · or find it (chests / drops'+(d.drop?' · '+d.drop:'')+')';
    if(own)h+=add('<b>'+d.name+'</b><span>'+d.type+' · N '+d.N+' · cd '+d.cd+' s · '+d.prop+' · LV '+WL(id).lv+'</span>',w.key===id?'on':'',()=>{equip(f,id);U.msg='Equipped '+d.name;},d.kj,d.col);
-   else{const can=d.from&&S.D().cores.some(c=>c.sp===d.from&&!S.holder(c.id));h+=add('<b>'+(can?'⚒ FORGE ':'🔒 ')+d.name+'</b><span>'+src+'</span>',can&&forgeAt?'':'off',()=>{const r=forge(f,id);U.msg=r.err||('⚒ FORGED '+d.name+' · equip it here');if(r.ok)try{sfx('ko');}catch(er){}},d.kj,d.col);}}
+   else{const can=(d.from&&S.D().cores.some(c=>c.sp===d.from&&!S.holder(c.id)))||!!recCores(id);h+=add('<b>'+(can?'⚒ FORGE ':'🔒 ')+d.name+'</b><span>'+src+'</span>',can&&forgeAt?'':'off',()=>{const r=forge(f,id);U.msg=r.err||('⚒ FORGED '+d.name+' · equip it here');if(r.ok)try{sfx('ko');}catch(er){}},d.kj,d.col);}}
   h+='</div>';}
  else{const n=sockets(f,w.key),on=sockOf(w.key);h+='<div class="sec">RUNES · '+w.def.name+' · sockets '+on.length+' / '+n+' · runes drop from secret spots (1 per 3) and side quests (1 per 2)</div><div class="row">';
   for(let i=0;i<n;i++){const r=on[i];h+=add(r?'<b>'+RUNES[r][0]+'</b><span>'+RUNES[r][2]+' · Enter: remove</span>':'<b>empty socket</b><span>pick a rune below</span>',r?'on':'',()=>{if(r){on.splice(i,1);A.save.dirty('rune');U.msg='Removed '+RUNES[r][0];}},r?RUNES[r][1]:'◇',0xffd040);}
@@ -14241,7 +14257,7 @@ function uiHtml(f,isRunes,add,forgeAt){const U=A.spiritsUI;const w=cur(f);let h=
   for(const r of RUNE_ORDER){const tot=own[r]||0;if(!tot)continue;any=1;const free=runeFree(r);h+=add('<b>'+RUNES[r][0]+' ×'+free+'/'+tot+'</b><span>'+RUNES[r][2]+'</span>',free>0&&on.length<n?'':'off',()=>{if(free<=0){U.msg='All '+RUNES[r][0]+' runes are socketed';return;}if(on.length>=n){U.msg='No free socket (2nd socket: weapon LV 5 or the Rune socket node)';return;}on.push(r);A.save.dirty('rune');U.msg='Socketed '+RUNES[r][0];},RUNES[r][1],0xffd040);}
   if(!any)h+='<div class="pv">No runes yet. Find secret spots (✦) and clear side quests (⚑).</div>';h+='</div>';}
  return h;}
-A.weapons={DEF,RUNES,cur,fire,recall,formPress,useArt,artOpen,artDef,forge,equip,needN,cdOf,WS,WL,runesOwned,runesOn,sockOf,sockets,uiHtml,D,formOf,checkDrops,runeCount};
+A.weapons={DEF,RUNES,cur,fire,recall,formPress,useArt,artOpen,artDef,forge,equip,needN,cdOf,WS,WL,runesOwned,runesOn,sockOf,sockets,uiHtml,D,formOf,checkDrops,runeCount,REC,recCores,defOf};
 })();
 
 </script>
@@ -14485,6 +14501,89 @@ function push(f,q){if(!f)return;const t={x:q.x+q.ix*2.6,z:q.z+q.iz*2.6};try{coll
 const _aa=advAmbient;advAmbient=function(dt){_aa.apply(this,arguments);try{step(Math.min(.1,dt||0));}catch(e){if(!GT.err){GT.err=e;console.warn('[f4]',e);}}};
 if(typeof advExit==='function'){const _ax=advExit;advExit=function(){GT.pend=null;clear();return _ax.apply(this,arguments);};}
 GT.build=build;GT.clear=clear;GT.area_=area;
+})();
+
+</script>
+<script>/* adv2_f5.js */
+/* ===== ADV2 · Deploy F5: weapons on the mech, world drops + region chests, FINISHER streak HUD + callout, stats cards. Adventure only. ===== */
+(function(){'use strict';const A=window.ADV2;if(!A||!A.weapons||!A.spirits||typeof G==='undefined'||typeof THREE==='undefined')return;const T=THREE,W=A.weapons,S=A.spirits;
+const isAdv=()=>typeof ADV!=='undefined'&&ADV.on&&G.mode==='adv';const t=()=>(A.simT?A.simT():0);
+let RS=0x51f5a11;const rr=()=>{RS=(RS+0x6D2B79F5)|0;let q=Math.imul(RS^RS>>>15,1|RS);q=q+Math.imul(q^q>>>7,61|q)^q;return ((q^q>>>14)>>>0)/4294967296;};
+const MAT={};const mat=(c,em)=>MAT[c+':'+em]||(MAT[c+':'+em]=em?new T.MeshBasicMaterial({color:c}):new T.MeshStandardMaterial({color:c,metalness:.9,roughness:.18,emissive:c,emissiveIntensity:.18}));
+const CHR=()=>mat(0xe8eef8,0);
+/* math-shape weapon models by type (length along +Y, grip at origin) */
+function model(def){const g=new T.Group(),c=def.col||0x29e6ff,gl=mat(c,1),ch=CHR(),m=(geo,mt,x,y,z,rx,rz)=>{const o=new T.Mesh(geo,mt);o.position.set(x||0,y||0,z||0);o.rotation.set(rx||0,0,rz||0);g.add(o);return o;};
+ const ty=def.type||'blade';m(new T.CylinderGeometry(.035,.035,.26,8),mat(0x202436,0),0,0,0);
+ if(ty==='blade'){m(new T.BoxGeometry(.2,.04,.06),ch,0,.15,0);const sh=new T.Shape();sh.moveTo(-.045,0);sh.lineTo(.045,0);sh.lineTo(.03,.8);sh.lineTo(0,.92);sh.lineTo(-.03,.8);m(new T.ExtrudeGeometry(sh,{depth:.012,bevelEnabled:false}),ch,0,.17,-.006);m(new T.BoxGeometry(.012,.74,.02),gl,0,.55,0);}
+ else if(ty==='heavy'){m(new T.CylinderGeometry(.03,.03,.7,8),ch,0,.45,0);m(new T.BoxGeometry(.34,.2,.2),ch,0,.85,0);m(new T.TorusGeometry(.11,.018,6,24),gl,0,.85,.105);m(new T.TorusGeometry(.11,.018,6,24),gl,0,.85,-.105);}
+ else if(ty==='staff'){m(new T.CylinderGeometry(.025,.025,1.5,8),ch,0,.3,0);for(const y of [1.05,-.45])m(new T.OctahedronGeometry(.08,0),gl,0,y,0);m(new T.TorusGeometry(.13,.012,6,28),gl,0,1.05,0,Math.PI/2);}
+ else if(ty==='gauntlet'){m(new T.IcosahedronGeometry(.13,1),ch,0,.05,0);for(let i=0;i<3;i++)m(new T.ConeGeometry(.025,.12,6),gl,(i-1)*.06,.2,.04);}
+ else if(ty==='thrown'){m(new T.TorusGeometry(.26,.03,8,40),ch,0,.32,0);for(let i=0;i<6;i++){const a=i/6*Math.PI*2;m(new T.ConeGeometry(.03,.1,4),gl,Math.cos(a)*.31,.32+Math.sin(a)*.31,0,0,a-Math.PI/2);}}
+ else if(ty==='bow'){const pts=[];for(let i=0;i<=24;i++){const a=-1.1+2.2*i/24;pts.push(new T.Vector3(Math.cos(a)*.3-.3,Math.sin(a)*.55,0));}m(new T.TubeGeometry(new T.CatmullRomCurve3(pts),24,.022,6,false),ch,.15,.1,0);m(new T.CylinderGeometry(.004,.004,.98,4),gl,-.12,.1,0);}
+ return g;}
+/* ---------- equipped weapon visible on the hand ---------- */
+const HAND=new Map();
+function handStep(){for(const f of F){if(!f)continue;let h=HAND.get(f);const w=isAdv()&&!f.ko&&f.root&&f.root.visible?W.cur(f):null;const key=w?w.key:null;
+  if(!h||h.key!==key||h.mi!==f.mi){if(h){scene.remove(h.g);}h=null;HAND.delete(f);if(key){const g=model(w.def);g.scale.setScalar(1.6);scene.add(g);h={g,key,mi:f.mi};HAND.set(f,h);}}
+  if(!h)continue;const B=f.B&&(f.B.wrR||f.B.wrL);if(B){B.updateWorldMatrix(true,false);const p=B.localToWorld(new T.Vector3(0,-.14,0));h.g.position.copy(p);B.getWorldQuaternion(h.g.quaternion);h.g.rotateX(Math.PI);h.g.visible=true;}
+  else{h.g.position.set(f.x+Math.cos(f.ang||0)*.5,1.1,f.z);h.g.visible=true;}}}
+/* ---------- world pickups: enemy / boss drops + one chest per region ---------- */
+const PK=[];const wd=()=>{const w=W.D();if(!w.chests)w.chests={};return w;};
+const unowned=()=>Object.keys(W.DEF).filter(k=>k!=='sig'&&!W.D().own[k]);
+function beam(c){const g=new T.Group();const r=new T.Mesh(new T.TorusGeometry(.8,.04,6,48),mat(c,1));r.rotation.x=Math.PI/2;r.position.y=.05;g.add(r);const b=new T.Mesh(new T.CylinderGeometry(.06,.06,4,8,1,true),new T.MeshBasicMaterial({color:c,transparent:true,opacity:.35,depthWrite:false}));b.position.y=2;g.add(b);return g;}
+function spawnWeapon(id,x,z,why){const d=W.DEF[id];const g=new T.Group();const m=model(d);m.position.y=.9;m.scale.setScalar(1.6);g.add(m,beam(d.col));g.position.set(x,0,z);scene.add(g);PK.push({kind:'w',id,g,m,why});}
+function spawnChest(rid,x,z){const g=new T.Group();const bx=new T.Mesh(new T.BoxGeometry(1.1,.6,.7),mat(0x1a2050,0));bx.position.y=.3;const lid=new T.Mesh(new T.CylinderGeometry(.35,.35,1.1,16,1,false,0,Math.PI),mat(0x29e6ff,0));lid.rotation.z=Math.PI/2;lid.position.y=.6;
+ const tr=new T.Mesh(new T.BoxGeometry(1.14,.06,.74),mat(0xffd040,1));tr.position.y=.6;g.add(bx,lid,tr,beam(0xffd040));g.position.set(x,0,z);scene.add(g);PK.push({kind:'c',rid,g,m:lid});}
+function clearPK(){for(const p of PK)scene.remove(p.g);PK.length=0;}
+let lastRid=null;const seenDead=new WeakSet(),ALIVE=new Map();
+function own(id,why){W.D().own[id]={at:Date.now(),found:why};A.save.dirty('wfind');try{A.toast&&A.toast('器 WEAPON FOUND · '+W.DEF[id].name.toUpperCase(),false,why+' · press J › WEAPON to equip');sfx('ko');}catch(e){}}
+function pkStep(){const rid=A.world2&&A.world2.on?A.world2.id:null;const L=(()=>{try{return advActive().filter(f=>f&&!f.ko);}catch(e){return [];}})();
+ if(rid!==lastRid){clearPK();lastRid=rid;if(rid&&L[0]&&!wd().chests[rid]){const a=(L[0].ang||0);spawnChest(rid,L[0].x+Math.sin(a+.9)*7,L[0].z+Math.cos(a+.9)*7);}}
+ const now=new Set(ADV.en.filter(e=>!e.dead));for(const [e,pos] of ALIVE){if(now.has(e)){pos[0]=e.x;pos[1]=e.z;continue;}ALIVE.delete(e);if(seenDead.has(e))continue;seenDead.add(e);e.x=pos[0];e.z=pos[1];const boss=e.boss2||e.type==='B'||e.type==='N';const ch=boss?1:e.elite?.25:.04;const u=unowned();if(u.length&&rr()<ch&&PK.filter(p=>p.kind==='w').length<3)spawnWeapon(u[(rr()*u.length)|0],e.x,e.z,boss?'boss drop':'enemy drop');}
+ for(const e of now)if(!ALIVE.has(e))ALIVE.set(e,[e.x,e.z]);
+ for(let i=PK.length-1;i>=0;i--){const p=PK[i];p.m.rotation.y=t()*2;if(p.kind==='w')p.m.position.y=.9+Math.sin(t()*3)*.12;
+  const f=L.find(f=>Math.hypot(f.x-p.g.position.x,f.z-p.g.position.z)<1.7);if(!f)continue;scene.remove(p.g);PK.splice(i,1);
+  if(p.kind==='w'){if(!W.D().own[p.id])own(p.id,p.why);}else{wd().chests[p.rid]=1;const u=unowned();if(u.length)own(u[(rr()*u.length)|0],'region chest');else{try{ST[f.side].coins+=80;A.toast('✦ CHEST',false,'+80 coins');}catch(e){}}A.save.dirty('chest');}}}
+A.f5={model,spawnWeapon,spawnChest,PK,HAND};
+/* ---------- FINISHER streak HUD ---------- */
+const css=document.createElement('style');css.textContent=`
+#f5st{position:fixed;left:50%;bottom:118px;transform:translateX(-50%);z-index:13;display:none;pointer-events:none;text-align:center;font:italic 900 16px Bahnschrift,Arial,sans-serif;color:#fff;letter-spacing:.12em;text-shadow:0 0 8px #29e6ff}
+#f5st .pp{display:flex;gap:5px;justify-content:center;margin-top:4px}#f5st .p{width:30px;height:14px;transform:skewX(-20deg);border:1.5px solid rgba(255,255,255,.6);background:rgba(10,14,40,.7)}
+#f5st .p.on{background:linear-gradient(90deg,#29e6ff,#ff2ea0);box-shadow:0 0 10px #29e6ff}#f5st.full .p{background:linear-gradient(90deg,#ffd040,#fff);box-shadow:0 0 14px #ffd040}#f5st b{color:#ffd040}
+#f5fl{position:fixed;inset:0;z-index:15;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.85),rgba(41,230,255,.35) 35%,rgba(255,46,160,0) 70%)}
+#f5co{position:fixed;left:50%;top:30%;transform:translate(-50%,-50%) skewX(-10deg);z-index:16;pointer-events:none;display:none;font:italic 900 46px/1 Bahnschrift,Arial,sans-serif;letter-spacing:.04em;background:linear-gradient(90deg,#fff,#ffd040 40%,#ff2ea0);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 16px rgba(255,46,160,.8));white-space:nowrap;text-align:center}
+#f5co small{display:block;font-size:15px;letter-spacing:.3em;margin-top:6px}
+body[data-mode=adv] #f5st.on{display:block}@media (max-width:600px){#f5co{font-size:19px;top:24%}#f5co small{font-size:10px}#f5st{bottom:205px;font-size:12px}#f5st .p{width:14px}}
+.f5cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:4px 0 6px}.f5cards .cd{position:relative;border:1.5px solid rgba(41,230,255,.4);background:linear-gradient(165deg,rgba(22,40,110,.9),rgba(6,8,24,.97));clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px)}
+.f5cards canvas{display:block;width:100%;height:130px}.f5cards .cap{position:absolute;left:8px;bottom:6px;right:8px;font:italic 900 12px Bahnschrift,Arial;color:#fff;text-shadow:0 0 6px #000}.f5cards .cap i{display:block;font:800 9.5px system-ui;font-style:normal;letter-spacing:.16em;color:#8ad8ff}
+@media (max-width:600px){.f5cards canvas{height:92px}.f5cards .cap{font-size:10px}}`;document.head.appendChild(css);
+const st=document.createElement('div');st.id='f5st';const fl=document.createElement('div');fl.id='f5fl';const co=document.createElement('div');co.id='f5co';document.body.append(st,fl,co);
+function hudStep(){const f=(()=>{try{return advActive().find(f=>f&&!f.ko);}catch(e){return null;}})();const show=isAdv()&&!G.ui&&f;st.classList.toggle('on',!!show);if(!show)return;
+ const w=W.cur(f),s=W.WS(f),n=W.needN(f),k=Math.min(n,s.streak|0),cd=s.cd>0;const key=w.def.name+k+n+(cd?Math.ceil(s.cd):'')+(w.locked||'');if(st._k===key)return;st._k=key;st.classList.toggle('full',k>=n);
+ st.innerHTML='<div>'+(w.locked?'FINISHER · '+w.locked:cd?'FINISHER RECHARGING '+Math.ceil(s.cd)+' s':'JAB STREAK <b>'+k+' / '+n+'</b> → FINISHER')+'</div><div class="pp">'+Array.from({length:n},(_,i)=>'<span class="p'+(i<k&&!cd?' on':'')+'"></span>').join('')+'</div>';}
+let slowN=0,fz=0;const _fire=W.fire;W.fire=function(f){const r=_fire.apply(this,arguments);try{if(isAdv()&&f){const w=W.cur(f);finFX(f,w.def.art?w.def.art[0]:w.def.name,w.def.name);}}catch(e){}return r;};
+function finFX(f,name,wn){G.hitStop=Math.max(G.hitStop||0,.18);G.shake=Math.max(G.shake||0,.55);G.flash=Math.max(G.flash||0,.5);G.timeScale=.35;slowN=26;fz=1;
+ co.innerHTML='✦ '+String(name).toUpperCase()+' ✦<small>FINISHER · '+String(wn).toUpperCase()+'</small>';co.style.display='block';co._t=48;A.f5.finishers=(A.f5.finishers||0)+1;
+ try{const p=f.chest?f.chest():new T.Vector3(f.x,1.2,f.z);burst(p,90,[0xffffff,0xffd040,0xff2ea0,0x29e6ff],7,{life:.8,s0:.1});ring(p,.2,4.5,.6,0xffd040,4,true);sfx('ko');}catch(e){}}
+function finStep(){if(slowN>0&&--slowN===0)G.timeScale=1;if(fz>0){fz=Math.max(0,fz-.06);fl.style.opacity=fz.toFixed(2);}if(co._t>0&&--co._t===0)co.style.display='none';}
+/* ---------- stats cards in the LOADOUT (spirit · technique · weapon), animated projected math shapes ---------- */
+let cards=null,cf=null;function shapeFor(kind,f){const P=[];const N=kind==='sp'?20:kind==='te'?36:16;
+ if(kind==='sp'){const ph=(1+Math.sqrt(5))/2;for(const a of [-1,1])for(const b of [-1,1]){P.push([0,a,b*ph],[a,b*ph,0],[b*ph,0,a]);}}else if(kind==='te'){for(let r=0;r<3;r++)for(let i=0;i<12;i++){const a=i/12*Math.PI*2;P.push([Math.cos(a)*(1.4-r*.35),Math.sin(a)*(1.4-r*.35),(r-1)*.5]);}}
+ else{for(let i=0;i<N;i++){const y=-1.4+2.8*i/(N-1);P.push([.15*Math.sin(i),y,0],[-.15*Math.sin(i),y,.1]);}}return P;}
+function cardInfo(f){const c=S.equipped(f)[0];const sp=c?S.sp(c.sp):null;let tech='Street style · tier I';try{const id=A.tech.equipped();if(id&&A.world2.TECH[id])tech=A.world2.TECH[id][0]+' · tier '+['','I','II','III'][A.tech.tierOf(id)];}catch(e){}const w=W.cur(f);
+ return [{k:'sp',lab:'DEMON SPIRIT',name:sp?sp.name+' '+S.STARS(c.st):'Innate spirit',kj:sp?sp.kanji:'魂',col:sp?sp.col:0xff2ea0},{k:'te',lab:'FIGHTING TECHNIQUE',name:String(tech),kj:'技',col:0x29e6ff},{k:'wp',lab:'WEAPON',name:w.def.name,kj:w.def.kj||'器',col:w.def.col||0xffd040}];}
+function cardsStep(){const ov=document.getElementById('w2lo');if(!ov||!ov.classList.contains('on')){cf=null;return;}const f=(()=>{try{const L=advActive();return L.find(x=>x&&x.side===(A.spiritsUI.side||0))||L[0];}catch(e){return null;}})();if(!f)return;
+ let el=ov.querySelector('.f5cards');const info=cardInfo(f);const key=info.map(i=>i.name).join('|');if(!el||el._k!==key){if(el)el.remove();const tb=ov.querySelector('.tabs');if(!tb)return;el=document.createElement('div');el.className='f5cards';el._k=key;
+  el.innerHTML=info.map(i=>'<div class="cd" style="border-color:#'+i.col.toString(16).padStart(6,'0')+'99"><canvas width="300" height="130"></canvas><div class="cap"><i>'+i.lab+'</i>'+i.name+'</div></div>').join('');tb.after(el);cf={el,info,sh:info.map(i=>shapeFor(i.k))};}
+ const tt=performance.now()/1000;[...cf.el.querySelectorAll('canvas')].forEach((cv,ci)=>{const x=cv.getContext('2d'),I=cf.info[ci],P=cf.sh[ci],W_=cv.width,H=cv.height,hex='#'+I.col.toString(16).padStart(6,'0');x.clearRect(0,0,W_,H);
+  const g=x.createRadialGradient(W_/2,H/2,4,W_/2,H/2,H*.8);g.addColorStop(0,hex+'55');g.addColorStop(1,'#0000');x.fillStyle=g;x.fillRect(0,0,W_,H);
+  const ry=tt*(ci===1?1.4:.8),rx=.5+Math.sin(tt*.7+ci)*.3,cy=Math.cos(ry),sy=Math.sin(ry),cx=Math.cos(rx),sx=Math.sin(rx);const pr=P.map(([a,b,c])=>{const X=a*cy+c*sy,Z=-a*sy+c*cy,Y=b*cx-Z*sx,Z2=b*sx+Z*cx;const s=34/(1+Z2*.18);return [W_/2+X*s,H/2-6+Y*s,Z2];});
+  x.lineWidth=1.4;x.strokeStyle=hex;x.shadowColor=hex;x.shadowBlur=10;x.beginPath();for(let i=0;i<pr.length;i++)for(let j=i+1;j<pr.length;j++){const d=Math.hypot(P[i][0]-P[j][0],P[i][1]-P[j][1],P[i][2]-P[j][2]);if(d<(ci===0?2.1:ci===1?.8:.5)){x.moveTo(pr[i][0],pr[i][1]);x.lineTo(pr[j][0],pr[j][1]);}}x.stroke();
+  for(const p of pr){x.fillStyle=p[2]>0?'#fff':hex;x.beginPath();x.arc(p[0],p[1],p[2]>0?2.4:1.6,0,7);x.fill();}x.shadowBlur=18;x.fillStyle='#fff';x.font='900 30px serif';x.textAlign='center';x.globalAlpha=.85+.15*Math.sin(tt*3);x.fillText(I.kj,W_-34,36);x.globalAlpha=1;x.shadowBlur=0;});}
+/* ---------- ticks ---------- */
+if(typeof advAmbient==='function'){const _aa=advAmbient;advAmbient=function(dt){_aa.apply(this,arguments);try{finStep();if(!isAdv()){if(HAND.size){for(const h of HAND.values())scene.remove(h.g);HAND.clear();}if(PK.length){clearPK();lastRid=null;}ALIVE.clear();return;}handStep();pkStep();}catch(e){if(!A.f5.err){A.f5.err=e;console.warn('[f5]',e);}}};}
+if(typeof advExit==='function'){const _ax=advExit;advExit=function(){G.timeScale=1;slowN=0;for(const h of HAND.values())scene.remove(h.g);HAND.clear();clearPK();lastRid=null;return _ax.apply(this,arguments);};}
+(function loop(){requestAnimationFrame(loop);try{hudStep();cardsStep();}catch(e){if(!loop.e){loop.e=1;console.warn("[f5ui]",e&&e.message);}}})();
 })();
 
 </script>
