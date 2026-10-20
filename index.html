@@ -15840,7 +15840,7 @@ const _h=header;header=function(){_h();try{if(ctx&&ctx.whoHtml)hdr.querySelector
 const T=typeof THREE!=='undefined'?THREE:(typeof window.T!=='undefined'?window.T:null);if(!T)return;const PI=Math.PI,TAU=PI*2;
 /* ---------- params ---------- */
 const DEF={id:'downtown_city',seed:1207,bounds:{x0:-108,z0:-108,x1:108,z1:108},block:36,avenueW:14,alleyW:7,avenueEvery:2,sidewalk:3.2,curbH:.16,
- plazas:[{x:0,z:0,r:22,name:'Neon Square'}],keepouts:[],arenaR:14,fightCorners:true,heights:{min:12,max:96,coreR:70,edge:.35},lotSize:18,
+ plazas:[{x:0,z:0,r:22,name:'Neon Square'}],keepouts:[],arenaR:14,fightCorners:false,rings:false,/* F11/F12: no fight corners, no arena rings by default; set both true to restore */heights:{min:12,max:96,coreR:70,edge:.35},lotSize:18,
  rail:[{axis:'z',at:'avenue',index:1,y:9},{axis:'x',at:'avenue',index:-1,y:11}],chunk:32,palette:{a:0xff2ea0,b:0x29e6ff,ground:0x141a2c,fog:0x0d1022},lights:{streetEvery:18}};
 const merge=(a,b)=>{const o=Object.assign({},a);for(const k in b){const v=b[k];o[k]=(v&&typeof v==='object'&&!Array.isArray(v)&&a[k]&&typeof a[k]==='object'&&!Array.isArray(a[k]))?merge(a[k],v):v;}return o;};
 const rngOf=s=>{let a=(s>>>0)||1;return ()=>{a=(a+0x6D2B79F5)|0;let q=Math.imul(a^a>>>15,1|a);q=q+Math.imul(q^q>>>7,61|q)^q;return ((q^q>>>14)>>>0)/4294967296;};};
@@ -16032,7 +16032,9 @@ function block(blk,L,bags,lod){const h=L.params.curbH,pts=slabPoly(blk,L);if(pts
    box(bags.lac,mx,h+.004,mz,Math.abs(p[1][0]-p[0][0])+.12,.008,Math.abs(p[1][1]-p[0][1])+.12,PAVE2);}}}
 /* ---------- plazas ---------- */
 function plaza(p,L,bags,lod,arena){const h=L.params.curbH;cyl(bags.lac,p.x,h/2,p.z,p.r,h,CURB,true);bags.lac.add(UG().disc,MX(p.x,h+.002,p.z,p.r-.3,1,p.r-.3),PAVE2);
- if(lod!==0)return;/* F11: arena disc + rings + ticks removed (plaza keeps curb + bollards) */
+ if(lod!==0)return;if(L.params.rings){bags.lac.add(UG().disc,MX(p.x,h+.004,p.z,arena.r+1.2,1,arena.r+1.2),C(0x232a3e));
+ for(const [r,c] of [[p.r-.6,0x29e6ff],[arena.r+1,0xff2ea0],[arena.r*.35,0xffd24a]])bags.glow.add(UG().ring,MX(p.x,h+.008,p.z,r,1,r),C(c));
+ for(let i=0;i<16;i++){const a=i/16*TAU;box(bags.lac,p.x+Math.cos(a)*(arena.r+.6),h+.006,p.z+Math.sin(a)*(arena.r+.6),.08,.006,1.4,PAINT,-a);}}
  /* lacquer bollards with LED caps around the rim (shared ring spacing, skipped on street mouths) */
  const n=Math.round(p.r*TAU/5);for(let i=0;i<n;i++){const a=i/n*TAU,x=p.x+Math.cos(a)*(p.r-1.4),z=p.z+Math.sin(a)*(p.r-1.4);cyl(bags.lac,x,h+.45,z,.22,.9,C(0xe9edf5));cyl(bags.glow,x,h+.93,z,.18,.06,C(i%2?0xff2ea0:0x29e6ff));}}
 /* ---------- streets ---------- */
@@ -16048,7 +16050,7 @@ function streets(L,bags,lod,X0,Z0,X1,Z1){const inside=(x,z)=>x>=X0&&x<X1&&z>=Z0&
  /* crosswalks + stop lines */
  for(const it of L.intersections){if(!inside(it.x,it.z)||inPlaza(L,it.x,it.z,1))continue;for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const road=dx?it.wz:it.wx,off=(dx?it.wx:it.wz)/2+2.2;const cx=it.x+dx*off,cz=it.z+dz*off;
    for(let k=-road/2+.9;k<road/2-.6;k+=1.1){box(bags.lac,dx?cx:cx+k,y,dz?cz:cz+k,dx?3:.55,.012,dz?3:.55,PAINT);}box(bags.lac,dx?cx+dx*2.1:cx,y,dz?cz+dz*2.1:cz,dx?.3:road*.9,.012,dz?.3:road*.9,PAINT);}
-  /* F11: no fight-corner ring */}
+  if(it.fight&&L.params.rings){bags.glow.add(UG().ring,MX(it.x,.02,it.z,L.params.arenaR,1,L.params.arenaR),C(0x29e6ff));for(let i=0;i<24;i++){const a=i/24*TAU;box(bags.glow,it.x+Math.cos(a)*(L.params.arenaR+.5),.02,it.z+Math.sin(a)*(L.params.arenaR+.5),.5,.012,.18,C(0xff2ea0),-a);}}}
  /* street lights along avenues, traffic lights at avenue intersections */
  for(const l of L.lights)if(inside(l.x,l.z))streetLight(bags,l.x,l.z,l.nx,l.nz);
  for(const it of L.intersections){if(!inside(it.x,it.z)||!it.signal)continue;
@@ -16857,7 +16859,7 @@ const css=`#nblo{position:fixed;inset:0;z-index:2147482170;display:none;font-fam
 #nblo .sfm svg{flex:none}#nblo .sfm b{display:block;font:italic 900 15px Bahnschrift;letter-spacing:.06em}#nblo .sfm span{display:block;font:700 10.5px/1.35 system-ui;color:#aab8e8}
 #nblo .sk{position:absolute;transform:translate(-50%,-50%);border-radius:50%;cursor:pointer}
 #nblo .sk .cd{position:absolute;inset:7%;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 50% 35%,#1d2a66,#090b22 70%);box-shadow:inset 0 0 0 2px rgba(255,255,255,.12),inset 0 -10px 24px rgba(0,0,0,.6)}
-#nblo .sk .cd>div{position:absolute;inset:-12% -12% -4%}
+#nblo .sk .cd>div{position:absolute;inset:-6% -24% -82% -24%}/* card body (3D view) only inside the circle; the plate falls outside the crop and the name sits on the ribbon below */
 #nblo .sk .gl{position:absolute;inset:7%;border-radius:50%;pointer-events:none;background:radial-gradient(circle at 35% 22%,rgba(255,255,255,.38),rgba(255,255,255,0) 38%);mix-blend-mode:screen}
 #nblo .sk .em{position:absolute;inset:7%;border-radius:50%;display:grid;place-items:center;font:900 34px/1 serif;color:#ffd56a;text-shadow:0 0 14px #ffb020;opacity:.85}
 #nblo .sk .em small{display:block;font:800 9px system-ui;color:#9fb0e0;letter-spacing:.12em;text-align:center;margin-top:4px;text-shadow:none}
@@ -16881,7 +16883,7 @@ const css=`#nblo{position:fixed;inset:0;z-index:2147482170;display:none;font-fam
 #nblo .pi{flex:none;width:118px;min-height:62px;box-sizing:border-box;padding:8px 8px 8px 44px;position:relative;background:linear-gradient(165deg,rgba(22,40,110,.92),rgba(10,10,44,.95));border:1.5px solid rgba(41,230,255,.28);clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);cursor:pointer}
 #nblo .pi .kj{position:absolute;left:7px;top:50%;margin-top:-16px;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font:900 17px/1 serif;color:#160c00;background:radial-gradient(circle at 35% 30%,#fff,var(--c,#29e6ff) 60%,#202040);box-shadow:0 0 12px var(--c,#29e6ff)}
 #nblo .pi b{display:block;font:italic 900 12px/1.1 Bahnschrift}#nblo .pi span{display:block;font:700 9.5px/1.25 system-ui;color:#c5cff0;margin-top:2px}
-#nblo .pi.sel{border-color:#fff;box-shadow:0 0 0 2px var(--c,#29e6ff),0 0 22px var(--c,#29e6ff)}#nblo .pi.on:after{content:'EQUIPPED';position:absolute;right:6px;top:4px;font:900 7.5px system-ui;letter-spacing:.14em;color:#3dffa8}
+#nblo .pi.sel{border-color:#fff;box-shadow:0 0 0 2px var(--c,#29e6ff),0 0 22px var(--c,#29e6ff)}#nblo .pi.on{padding-top:19px}#nblo .pi.on:after{content:'● EQUIPPED';position:absolute;left:44px;top:6px;font:900 7.5px system-ui;letter-spacing:.14em;color:#3dffa8}
 #nblo .pi.dim{opacity:.55}
 #nblo .ms{position:absolute;left:50%;bottom:3.6%;transform:translateX(-50%);font:800 12px system-ui;color:#ffb3d9;text-shadow:0 0 10px rgba(255,46,160,.6);white-space:nowrap}
 #nblo .ft{position:absolute;left:2.2%;bottom:2.2%;font:700 10.5px system-ui;color:#c3cbef;letter-spacing:.04em;padding:6px 10px;background:rgba(5,6,18,.78);border:1px solid rgba(41,230,255,.25);border-radius:6px}
@@ -16908,7 +16910,7 @@ const SOCK=[{g:'sp',i:0,tab:0},{g:'sp',i:1,tab:0},{g:'sp',i:2,tab:0},{g:'tech',i
 const TABS=['SPIRITS','TECHNIQUE','WEAPON','FORGE'];
 const phone=()=>innerWidth<700||innerWidth<innerHeight*.8;
 /* socket anchors (fraction of viewport) + diameter px */
-function anchors(){const W=innerWidth,H=innerHeight;if(phone()){const d=Math.round(Math.min(W*.18,H*.085));return {d,fy:.32,fh:.33,p:[[.13,.2],[.13,.33],[.13,.46],[.87,.24],[.87,.41]]};}
+function anchors(){const W=innerWidth,H=innerHeight;if(phone()){const d=Math.round(Math.min(W*.18,H*.085));return {d,fy:.335,fh:.25,p:[[.12,.215],[.12,.34],[.12,.465],[.88,.25],[.88,.42]]};}
  const d=Math.round(clamp(H*.15,84,140));return {d,fy:.52,fh:.66,p:[[.335,.29],[.3,.5],[.335,.71],[.665,.34],[.665,.64]]};}
 /* ---------------- DOM ---------------- */
 let root=null,cv=null,E={};
