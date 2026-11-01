@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<link rel="icon" href="data:," />
+<title>NEON PAW — 3D arena duel demo</title>
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/icons/favicon-32.png" type="image/png" sizes="32x32" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+<style>
+  body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 50% -10%,#1a0d2a,#070b12 60%);color:#e8f0ff;font-family:"Segoe UI",system-ui,-apple-system,sans-serif}
+  .wrap{max-width:760px;margin:0 auto;padding:20px 14px 40px}
+  h1{margin:0 0 4px;font-size:22px;letter-spacing:3px;background:linear-gradient(90deg,#7df9ff,#ff2bd6);-webkit-background-clip:text;background-clip:text;color:transparent}
+  p.lede{margin:0 0 16px;color:#8aa0c0;font-size:13px}
+  .filler{height:40vh;margin-top:24px;border-radius:14px;border:1px dashed #1e2a3d;display:grid;place-items:center;color:#8aa0c0;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>NEON PAW · ARENA DUEL</h1>
+  <p class="lede">Standalone test page for <code>fight-forest/forest.mjs</code> with the six demo collectables.</p>
+  <div id="duel"></div>
+  <div class="filler">page content below (scroll test)</div>
+</div>
+<script>
+  /* Copy of SAMPLE_CATS from app.js (the module itself takes the array as an argument). */
+  window.DEMO_CATS = [
+    { id: "c1", name: "Nova Spark", location: "Neo Tokyo", speed: 88, weight: 42, aesthetics: 91, hue: 320 },
+    { id: "c2", name: "Volt Whisker", location: "Night City", speed: 95, weight: 38, aesthetics: 70, hue: 180 },
+    { id: "c3", name: "Pixel Purr", location: "Shinjuku Grid", speed: 62, weight: 55, aesthetics: 97, hue: 280 },
+    { id: "c4", name: "Chrome Tail", location: "Osaka Sprawl", speed: 74, weight: 80, aesthetics: 66, hue: 40 },
+    { id: "c5", name: "Glitch Mittens", location: "Dockside Neon", speed: 51, weight: 90, aesthetics: 84, hue: 140 },
+    { id: "c6", name: "Astra Paw", location: "Orbital Shop", speed: 83, weight: 48, aesthetics: 88, hue: 200 }
+  ];
+  var Q = new URLSearchParams(location.search);
+  window.DEMO_OPTS = { speed: +Q.get("speed") || 1, seed: Q.has("seed") ? +Q.get("seed") : undefined, arena: Q.get("arena") || undefined, left: +(Q.get("left") || 0), right: +(Q.get("right") || 1),
+    autoStart: Q.get("auto") === "1", quality: Q.get("q") || "auto", adaptive: Q.get("hq") !== "1", maxPixelRatio: Q.get("hq") === "1" ? 2 : undefined, onEnd: function (r) { console.info("winner:", r.winner.name, "in", r.turns, "moves"); } };
+  if (Q.get("global") === "1") {
+    var s = document.createElement("script"); s.src = "forest.js";
+    s.onload = function () { window.duel = NeonPawForest.mountForest(document.getElementById("duel"), DEMO_CATS, DEMO_OPTS); window.mountMode = "global"; };
+    document.head.appendChild(s);
+  }
+</script>
+<script type="module">
+  if (new URLSearchParams(location.search).get("global") !== "1") {
+    const { mountForest } = await import("./forest.mjs");
+    const opts = { ...window.DEMO_OPTS };
+    if (new URLSearchParams(location.search).get("shared") === "1") opts.THREE = await import("./three.module.min.js");  // like the site passing its own THREE
+    window.duel = mountForest(document.getElementById("duel"), window.DEMO_CATS, opts);
+    window.mountMode = "module";
+  }
+</script>
+</body>
+</html>
